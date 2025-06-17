@@ -71,9 +71,9 @@ namespace _231211A
             {
                 //開啟檔案1,2
                 excelApp = new Excel.Application();
-                workbook = excelApp.Workbooks.Open(openFileDialog1.FileName);
+                workbook = excelApp.Workbooks.Open(textBox1.Text);
                 Excel.Worksheet worksheet = workbook.Worksheets[1];
-                workbook1 = excelApp.Workbooks.Open(openFileDialog2.FileName);
+                workbook1 = excelApp.Workbooks.Open(textBox2.Text);
                 Excel.Worksheet worksheet1 = workbook1.Worksheets[1];
 
                 Excel.Range excelRange = worksheet.UsedRange;
@@ -89,7 +89,6 @@ namespace _231211A
                 */
                 for (int j = 1; j <= lastRow1; j++)
                 {
-
                     for (int i = 1; i < lastRow; i++)
                     {
                         bool isequal = Comparer.Equals(dataArray1[j, 3]?.ToString().Trim(), dataArray[i, 1]?.ToString().Trim());
@@ -138,12 +137,11 @@ namespace _231211A
                                     worksheet.Cells[i, col + 2].Value = f2;
                                     //結存料數                                  
 
-                                    double originalvalue = worksheet1.Cells[j, 10].value;
-                                    int fourtofive = (int)Math.Round(originalvalue , MidpointRounding.AwayFromZero);
+                                    double originalvalue = worksheet1.Cells[j, 10].Value;
+                                    int fourtofive = (int)Math.Round(originalvalue, MidpointRounding.AwayFromZero);
                                     worksheet.Cells[i, col + 3].Value = fourtofive;
 
-                                    //
-                                    if(last1 - f2 < 0)
+                                    if (last1 - f2 < 0)
                                     {
                                         worksheet.Cells[i, col + 3].Interior.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.Red);
                                     }
