@@ -31,8 +31,9 @@
             button1 = new Button();
             button2 = new Button();
             textBox1 = new TextBox();
-            textBox2 = new TextBox();
+            listBoxSubFiles = new ListBox();
             button3 = new Button();
+            buttonRemove = new Button();
             SuspendLayout();
             // 
             // button1
@@ -56,38 +57,50 @@
             button2.Click += button2_Click;
             // 
             // textBox1
-            // 
+            //
             textBox1.Location = new Point(39, 94);
             textBox1.Name = "textBox1";
             textBox1.Size = new Size(458, 23);
             textBox1.TabIndex = 2;
             textBox1.TextChanged += textBox1_TextChanged;
-            // 
-            // textBox2
-            // 
-            textBox2.Location = new Point(39, 164);
-            textBox2.Name = "textBox2";
-            textBox2.Size = new Size(458, 23);
-            textBox2.TabIndex = 2;
-            textBox2.TextChanged += textBox1_TextChanged;
-            // 
+            //
+            // listBoxSubFiles
+            //
+            listBoxSubFiles.FormattingEnabled = true;
+            listBoxSubFiles.ItemHeight = 15;
+            listBoxSubFiles.Location = new Point(39, 164);
+            listBoxSubFiles.Name = "listBoxSubFiles";
+            listBoxSubFiles.Size = new Size(458, 109);
+            listBoxSubFiles.TabIndex = 3;
+            //
             // button3
-            // 
+            //
             button3.Location = new Point(136, 135);
             button3.Name = "button3";
             button3.Size = new Size(75, 23);
-            button3.TabIndex = 3;
-            button3.Text = "選擇副檔";
+            button3.TabIndex = 4;
+            button3.Text = "新增副檔";
             button3.UseVisualStyleBackColor = true;
             button3.Click += button3_Click;
-            // 
+            //
+            // buttonRemove
+            //
+            buttonRemove.Location = new Point(231, 135);
+            buttonRemove.Name = "buttonRemove";
+            buttonRemove.Size = new Size(75, 23);
+            buttonRemove.TabIndex = 5;
+            buttonRemove.Text = "移除副檔";
+            buttonRemove.UseVisualStyleBackColor = true;
+            buttonRemove.Click += buttonRemove_Click;
+            //
             // Form1
-            // 
+            //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(buttonRemove);
             Controls.Add(button3);
-            Controls.Add(textBox2);
+            Controls.Add(listBoxSubFiles);
             Controls.Add(textBox1);
             Controls.Add(button2);
             Controls.Add(button1);
@@ -102,7 +115,8 @@
         private Button button1;
         private Button button2;
         private TextBox textBox1;
-        private TextBox textBox2;
+        private ListBox listBoxSubFiles;
         private Button button3;
+        private Button buttonRemove;
     }
 }
