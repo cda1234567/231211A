@@ -2,15 +2,14 @@
 {
     partial class Form1
     {
-        /// <summary>
-        ///  Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
+        private System.Windows.Forms.ProgressBar progressBar1;
+        private System.Windows.Forms.ListBox listBoxFiles;
+        private System.Windows.Forms.Button buttonAddFile;
+        private System.Windows.Forms.Button buttonRemoveFile;
+        private System.Windows.Forms.Button button2; // 執行
+        private System.Windows.Forms.Label label1;
 
-        /// <summary>
-        ///  Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -20,89 +19,87 @@
             base.Dispose(disposing);
         }
 
-        #region Windows Form Designer generated code
-
-        /// <summary>
-        ///  Required method for Designer support - do not modify
-        ///  the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
-            button1 = new Button();
+            progressBar1 = new ProgressBar();
+            listBoxFiles = new ListBox();
+            buttonAddFile = new Button();
+            buttonRemoveFile = new Button();
             button2 = new Button();
-            textBox1 = new TextBox();
-            textBox2 = new TextBox();
-            button3 = new Button();
+            label1 = new Label();
             SuspendLayout();
             // 
-            // button1
+            // progressBar1
             // 
-            button1.Location = new Point(136, 63);
-            button1.Name = "button1";
-            button1.Size = new Size(75, 23);
-            button1.TabIndex = 0;
-            button1.Text = "選擇主檔";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
+            progressBar1.Location = new Point(12, 400);
+            progressBar1.Name = "progressBar1";
+            progressBar1.Size = new Size(494, 23);
+            progressBar1.TabIndex = 0;
+            // 
+            // listBoxFiles
+            // 
+            listBoxFiles.FormattingEnabled = true;
+            listBoxFiles.ItemHeight = 15;
+            listBoxFiles.Location = new Point(29, 25);
+            listBoxFiles.Name = "listBoxFiles";
+            listBoxFiles.Size = new Size(458, 319);
+            listBoxFiles.TabIndex = 1;
+            // 
+            // buttonAddFile
+            // 
+            buttonAddFile.Location = new Point(29, 355);
+            buttonAddFile.Name = "buttonAddFile";
+            buttonAddFile.Size = new Size(75, 23);
+            buttonAddFile.TabIndex = 2;
+            buttonAddFile.Text = "新增檔案";
+            buttonAddFile.UseVisualStyleBackColor = true;
+            buttonAddFile.Click += buttonAddFile_Click;
+            // 
+            // buttonRemoveFile
+            // 
+            buttonRemoveFile.Location = new Point(110, 355);
+            buttonRemoveFile.Name = "buttonRemoveFile";
+            buttonRemoveFile.Size = new Size(75, 23);
+            buttonRemoveFile.TabIndex = 3;
+            buttonRemoveFile.Text = "移除選取";
+            buttonRemoveFile.UseVisualStyleBackColor = true;
+            buttonRemoveFile.Click += buttonRemoveFile_Click;
             // 
             // button2
             // 
-            button2.Location = new Point(365, 387);
+            button2.Location = new Point(412, 443);
             button2.Name = "button2";
             button2.Size = new Size(75, 23);
-            button2.TabIndex = 1;
+            button2.TabIndex = 4;
             button2.Text = "執行";
             button2.UseVisualStyleBackColor = true;
             button2.Click += button2_Click;
             // 
-            // textBox1
+            // label1
             // 
-            textBox1.Location = new Point(39, 94);
-            textBox1.Name = "textBox1";
-            textBox1.Size = new Size(458, 23);
-            textBox1.TabIndex = 2;
-            textBox1.TextChanged += textBox1_TextChanged;
-            // 
-            // textBox2
-            // 
-            textBox2.Location = new Point(39, 164);
-            textBox2.Name = "textBox2";
-            textBox2.Size = new Size(458, 23);
-            textBox2.TabIndex = 2;
-            textBox2.TextChanged += textBox1_TextChanged;
-            // 
-            // button3
-            // 
-            button3.Location = new Point(136, 135);
-            button3.Name = "button3";
-            button3.Size = new Size(75, 23);
-            button3.TabIndex = 3;
-            button3.Text = "選擇副檔";
-            button3.UseVisualStyleBackColor = true;
-            button3.Click += button3_Click;
+            label1.AutoSize = true;
+            label1.Location = new Point(0, 464);
+            label1.Name = "label1";
+            label1.Size = new Size(35, 15);
+            label1.TabIndex = 5;
+            label1.Text = "Rev2";
+            label1.Click += label1_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
-            Controls.Add(button3);
-            Controls.Add(textBox2);
-            Controls.Add(textBox1);
+            ClientSize = new Size(518, 478);
+            Controls.Add(label1);
             Controls.Add(button2);
-            Controls.Add(button1);
+            Controls.Add(buttonRemoveFile);
+            Controls.Add(buttonAddFile);
+            Controls.Add(listBoxFiles);
+            Controls.Add(progressBar1);
             Name = "Form1";
-            Text = "Form1";
+            Text = "扣帳軟體";
             ResumeLayout(false);
             PerformLayout();
         }
-
-        #endregion
-
-        private Button button1;
-        private Button button2;
-        private TextBox textBox1;
-        private TextBox textBox2;
-        private Button button3;
     }
 }
