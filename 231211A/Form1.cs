@@ -16,12 +16,16 @@ namespace _231211A
         public Form1()
         {
             InitializeComponent();
+            // æ‹–æ›³æª”æ¡ˆæ”¯æ´
+            listBoxFiles.AllowDrop = true;
+            listBoxFiles.DragEnter += listBoxFiles_DragEnter;
+            listBoxFiles.DragDrop += listBoxFiles_DragDrop;
         }
 
         private void buttonAddFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Excel ÀÉ®× (*.xls;*.xlsx;*.xlsm;*.xlsb)|*.xls;*.xlsx;*.xlsm;*.xlsb";
+            openFileDialog.Filter = "Excel ï¿½É®ï¿½ (*.xls;*.xlsx;*.xlsm;*.xlsb)|*.xls;*.xlsx;*.xlsm;*.xlsb";
             openFileDialog.Multiselect = true;
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
@@ -51,7 +55,7 @@ namespace _231211A
                     }
                 }
             }
-            return 0; // °²³]Àq»{­È¬° 0
+            return 0; // ï¿½ï¿½ï¿½]ï¿½qï¿½{ï¿½È¬ï¿½ 0
         }
 
         private void ExecuteCmdCommand(string command)
@@ -84,7 +88,7 @@ namespace _231211A
         {
             if (listBoxFiles.Items.Count < 2)
             {
-                MessageBox.Show("½Ğ¿ï¾Ü¦Ü¤Ö¨â­ÓÀÉ®×");
+                MessageBox.Show("ï¿½Ğ¿ï¿½Ü¦Ü¤Ö¨ï¿½ï¿½ï¿½É®ï¿½");
                 return;
             }
 
@@ -96,7 +100,7 @@ namespace _231211A
             List<Excel.Workbook> workbooks = new List<Excel.Workbook>();
             string lastMainSavePath = null;
 
-            // «Ø¥ß°ÆÀÉ¦W¦¸¼Æ¦r¨å
+            // ï¿½Ø¥ß°ï¿½ï¿½É¦Wï¿½ï¿½ï¿½Æ¦rï¿½ï¿½
             var fileNameCount = new Dictionary<string, int>();
 
             try
@@ -107,11 +111,11 @@ namespace _231211A
                 Excel.Range mainExcelRange = mainWorksheet.UsedRange;
                 object[,] mainDataArray = mainExcelRange.Value;
 
-                // ³Ğ«Ø¸ê®Æ§¨
-                string folderPath = @"\\St-nas\­Ó¤H¸ê®Æ§¨\Andy\excel\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
+                // ï¿½Ğ«Ø¸ï¿½Æ§ï¿½
+                string folderPath = @"\\St-nas\ï¿½Ó¤Hï¿½ï¿½Æ§ï¿½\Andy\excel\\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
                 Directory.CreateDirectory(folderPath);
 
-                // ³]¸m¶i«×±ø³Ì¤j­È
+                // ï¿½]ï¿½mï¿½iï¿½×±ï¿½ï¿½Ì¤jï¿½ï¿½
                 progressBar1.Maximum = secondaryFileNames.Count;
                 progressBar1.Value = 0;
 
@@ -196,7 +200,7 @@ namespace _231211A
                         }
                     }
 
-                    // ²£¥Í°ÆÀÉÀx¦s¦WºÙ¡]¦Û°Ê¥[¬y¤ô¸¹¡^
+                    // ï¿½ï¿½ï¿½Í°ï¿½ï¿½ï¿½ï¿½xï¿½sï¿½Wï¿½Ù¡]ï¿½Û°Ê¥[ï¿½yï¿½ï¿½ï¿½ï¿½ï¿½^
                     string baseName = Path.GetFileNameWithoutExtension(secondaryFileName);
                     string ext = Path.GetExtension(secondaryFileName);
                     string saveName = baseName + ext;
@@ -211,7 +215,7 @@ namespace _231211A
                     workbook.SaveAs(secondarySavePath);
                     workbook.Close();
 
-                    // ¥DÀÉÀx¦s¦WºÙ¤]¥[¬y¤ô¸¹¡]Á×§K­«½Æ¡^
+                    // ï¿½Dï¿½ï¿½ï¿½xï¿½sï¿½Wï¿½Ù¤]ï¿½[ï¿½yï¿½ï¿½ï¿½ï¿½ï¿½]ï¿½×§Kï¿½ï¿½ï¿½Æ¡^
                     string mainBaseName = Path.GetFileNameWithoutExtension(mainFileName);
                     string mainExt = Path.GetExtension(mainFileName);
                     string mainSaveName = mainBaseName + mainExt;
@@ -223,7 +227,7 @@ namespace _231211A
                     else
                         mainSaveName = $"{mainBaseName}_main{mainExt}";
 
-                    // §R°£ÂÂ¥DÀÉ
+                    // ï¿½Rï¿½ï¿½ï¿½Â¥Dï¿½ï¿½
                     if (lastMainSavePath != null && File.Exists(lastMainSavePath))
                     {
                         try { File.Delete(lastMainSavePath); } catch { }
@@ -232,38 +236,38 @@ namespace _231211A
                     mainWorkbook.SaveAs(mainSavePath);
                     lastMainSavePath = mainSavePath;
 
-                    // ÄÀ©ñ¥DÀÉ¸ê·½
+                    // ï¿½ï¿½ï¿½ï¿½Dï¿½É¸ê·½
                     Marshal.ReleaseComObject(mainWorksheet);
                     Marshal.ReleaseComObject(mainExcelRange);
                     mainWorkbook.Close(false);
                     Marshal.ReleaseComObject(mainWorkbook);
 
-                    // ±N¥DÀÉ³]¬°·sªº¥DÀÉ
+                    // ï¿½Nï¿½Dï¿½É³]ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½Dï¿½ï¿½
                     mainWorkbook = excelApp.Workbooks.Open(mainSavePath);
                     mainWorksheet = mainWorkbook.Worksheets[1];
                     mainExcelRange = mainWorksheet.UsedRange;
                     mainDataArray = mainExcelRange.Value;
 
-                    // §ó·s¶i«×±ø
+                    // ï¿½ï¿½sï¿½iï¿½×±ï¿½
                     progressBar1.Value++;
                 }
 
-                // ³Ì«á«O¦s¥DÀÉ¡]¥u«O¯d³Ì«á¤@¥÷¡^
+                // ï¿½Ì«ï¿½Oï¿½sï¿½Dï¿½É¡]ï¿½uï¿½Oï¿½dï¿½Ì«ï¿½@ï¿½ï¿½ï¿½^
                 Thread.Sleep(1000);
                 mainWorkbook.Save();
                 mainWorkbook.Close();
 
                 excelApp.Quit();
-                MessageBox.Show("°õ¦æ§¹¦¨");
+                MessageBox.Show("ï¿½ï¿½ï¿½æ§¹ï¿½ï¿½");
                 Application.Exit();
             }
             catch (Exception ex)
             {
-                // °õ¦æ taskkill «ü¥O¨ÓÃö³¬ Excel
+                // ï¿½ï¿½ï¿½ï¿½ taskkill ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Excel
                 ExecuteCmdCommand("taskkill /f /im excel.exe");
 
-                // Åã¥Ü¿ù»~«H®§©M°ïÅ|°lÂÜ
-                MessageBox.Show($"¿ù»~¡G{ex.Message}\n°ïÅ|°lÂÜ¡G{ex.StackTrace}");
+                // ï¿½ï¿½Ü¿ï¿½ï¿½~ï¿½Hï¿½ï¿½ï¿½Mï¿½ï¿½ï¿½|ï¿½lï¿½ï¿½
+                MessageBox.Show($"ï¿½ï¿½ï¿½~ï¿½G{ex.Message}\nï¿½ï¿½ï¿½|ï¿½lï¿½Ü¡G{ex.StackTrace}");
             }
             finally
             {
@@ -279,6 +283,36 @@ namespace _231211A
         private void label1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        // æ‹–æ›³æª”æ¡ˆé€²å…¥æ™‚ï¼Œé¡¯ç¤ºå…è¨±æ‹–æ›³æ•ˆæœ
+        private void listBoxFiles_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
+        }
+
+        // æ‹–æ›³æª”æ¡ˆæ”¾ä¸‹æ™‚ï¼Œå°‡æª”æ¡ˆåŠ å…¥æ¸…å–®
+        private void listBoxFiles_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (var file in files)
+                {
+                    string ext = Path.GetExtension(file).ToLower();
+                    if ((ext == ".xls" || ext == ".xlsx" || ext == ".xlsm" || ext == ".xlsb") && !listBoxFiles.Items.Contains(file))
+                    {
+                        listBoxFiles.Items.Add(file);
+                    }
+                }
+            }
         }
     }
 }
