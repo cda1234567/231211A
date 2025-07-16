@@ -62,7 +62,8 @@ python test_drag_drop.py
 
 ## 輸出
 
-- 處理後的檔案會儲存在 `\\St-nas\個人資料\Andy\excel\` 目錄下
+- **預設儲存位置**：`\\St-nas\個人資料夾\Andy\excel\YYYY-MM-DD-HH-MM-SS\`
+- **備援儲存位置**：如果網路路徑無法存取，會自動儲存到 `./output_YYYY-MM-DD-HH-MM-SS\`
 - 資料夾名稱格式：`YYYY-MM-DD-HH-MM-SS`
 - 主檔案會加上 `_main` 後綴
 

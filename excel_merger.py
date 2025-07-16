@@ -30,14 +30,14 @@ class ExcelMergerApp:
         list_frame = tk.Frame(frame)
         list_frame.pack(fill='both', expand=True, pady=(0, 10))
         
-        self.listbox = tk.Listbox(list_frame, selectmode=tk.MULTIPLE)
-        self.listbox.pack(fill='both', expand=True)
+        self.listbox = tk.Listbox(list_frame, selectmode=tk.BROWSE, width=90, height=15)  # 單選模式，寬度放大
+        self.listbox.pack(side='left', fill='both', expand=True)
         
-        # 支援拖曳功能
-        self.listbox.bind('<Button-1>', self.on_click)
-        self.listbox.bind('<B1-Motion>', self.on_drag)
-        self.listbox.bind('<ButtonRelease-1>', self.on_release)
-        
+        # 滾動條
+        scrollbar = tk.Scrollbar(list_frame, orient='vertical', command=self.listbox.yview)
+        scrollbar.pack(side='right', fill='y')
+        self.listbox.config(yscrollcommand=scrollbar.set)
+
         # 支援鍵盤快捷鍵
         self.listbox.bind('<Delete>', lambda e: self.remove_selected_files())
         
@@ -56,17 +56,29 @@ class ExcelMergerApp:
         btn_remove = tk.Button(btn_frame, text='移除選取', command=self.remove_selected_files)
         btn_remove.pack(side='left', padx=(0, 5))
         
+        btn_up = tk.Button(btn_frame, text='往上', command=self.move_up)
+        btn_up.pack(side='left', padx=(0, 5))
+        
+        btn_down = tk.Button(btn_frame, text='往下', command=self.move_down)
+        btn_down.pack(side='left', padx=(0, 5))
+        
         # 進度條
-        self.progress = ttk.Progressbar(frame, orient='horizontal', mode='determinate')
+        self.progress = ttk.Progressbar(frame, orient='horizontal', mode='determinate', length=600)
         self.progress.pack(fill='x', pady=(0, 10))
         
-        # 執行按鈕
-        btn_execute = tk.Button(frame, text='執行', command=self.execute_merge)
-        btn_execute.pack(side='right')
+        # 目前執行檔案顯示
+        self.current_file_label = tk.Label(frame, text='目前執行到的檔案：', anchor='w', font=('Arial', 12))
+        self.current_file_label.pack(fill='x', padx=5, pady=(0, 5), anchor='w')
+
+        # 執行按鈕（放大）
+        btn_execute = tk.Button(frame, text='執行', command=self.execute_merge, font=('Arial', 16, 'bold'), width=10, height=2)
+        btn_execute.pack(side='right', padx=10, pady=10)
         
-        # 版本標籤
-        version_label = tk.Label(frame, text='Rev2')
-        version_label.pack(side='left', anchor='sw')
+        # Rev3 標籤（右下角）
+        rev3_frame = tk.Frame(frame)
+        rev3_frame.pack(side='bottom', fill='x')
+        rev3_label = tk.Label(rev3_frame, text='Rev3', font=('Arial', 10, 'bold'))
+        rev3_label.pack(side='right', anchor='se', padx=5, pady=2)
 
     def on_click(self, event):
         self.drag_start = self.listbox.nearest(event.y)
@@ -111,6 +123,32 @@ class ExcelMergerApp:
             self.listbox.delete(idx)
             del self.file_list[idx]
 
+    def move_up(self):
+        selected = list(self.listbox.curselection())
+        if len(selected) != 1 or selected[0] == 0:
+            return
+        idx = selected[0]
+        above = idx - 1
+        self.file_list[above], self.file_list[idx] = self.file_list[idx], self.file_list[above]
+        text = self.listbox.get(idx)
+        self.listbox.delete(idx)
+        self.listbox.insert(above, text)
+        self.listbox.selection_set(above)
+        self.listbox.selection_clear(idx)
+
+    def move_down(self):
+        selected = list(self.listbox.curselection())
+        if len(selected) != 1 or selected[0] == self.listbox.size() - 1:
+            return
+        idx = selected[0]
+        below = idx + 1
+        self.file_list[below], self.file_list[idx] = self.file_list[idx], self.file_list[below]
+        text = self.listbox.get(idx)
+        self.listbox.delete(idx)
+        self.listbox.insert(below, text)
+        self.listbox.selection_set(below)
+        self.listbox.selection_clear(idx)
+
     def find_last_non_empty_column_value_in_row(self, data_array, row_index):
         """找到指定行中最後一個非空欄位的數值"""
         for col in range(data_array.shape[1] - 1, -1, -1):
@@ -128,13 +166,20 @@ class ExcelMergerApp:
             return
 
         try:
-            # 建立輸出資料夾 - 先嘗試網路路徑，失敗則使用本地路徑
+            # 建立輸出資料夾 - 預設使用網路路徑，失敗則使用本地路徑
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+            
+            # 預設網路路徑
+            default_network_path = Path(f"\\\\St-nas\\個人資料夾\\Andy\\excel\\{timestamp}")
+            
             try:
-                folder_path = Path(f"\\\\St-nas\\個人資料\\Andy\\excel\\{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}")
-                folder_path.mkdir(parents=True, exist_ok=True)
+                # 嘗試建立網路路徑資料夾
+                default_network_path.mkdir(parents=True, exist_ok=True)
+                folder_path = default_network_path
+                print(f"使用網路路徑：{folder_path}")
             except Exception as network_error:
                 # 如果網路路徑失敗，使用本地路徑
-                local_folder = Path(f"./output_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}")
+                local_folder = Path(f"./output_{timestamp}")
                 local_folder.mkdir(parents=True, exist_ok=True)
                 folder_path = local_folder
                 print(f"網路路徑無法存取，使用本地路徑：{folder_path}")
@@ -161,6 +206,9 @@ class ExcelMergerApp:
 
             # 處理每個次要檔案
             for i, secondary_file in enumerate(self.file_list[1:], 1):
+                # 顯示目前執行到的檔案
+                self.current_file_label.config(text=f'目前執行到的檔案：{os.path.basename(secondary_file)}')
+                self.root.update_idletasks()
                 # 開啟次要檔案
                 sec_wb = app.books.open(secondary_file)
                 sec_sheet = sec_wb.sheets[0]
@@ -324,6 +372,6 @@ if __name__ == '__main__':
     else:
         root = tk.Tk()
     
-    root.geometry('500x500')
+    root.geometry('750x600')
     app = ExcelMergerApp(root)
     root.mainloop() 
