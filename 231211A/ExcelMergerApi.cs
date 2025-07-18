@@ -140,7 +140,9 @@ namespace _231211A
                             }
                         }
                         progressValue++;
-                        if (progressValue <= progressBar1.Maximum)
+                        if (progressValue > progressBar1.Maximum)
+                            progressBar1.Value = progressBar1.Maximum;
+                        else
                             progressBar1.Value = progressValue;
                         labelCurrentFile.Text = $"目前執行到的檔案：{Path.GetFileName(secondaryFileName)} {j}/{lastRow1}";
                         Application.DoEvents();
@@ -189,8 +191,14 @@ namespace _231211A
                     mainExcelRange = mainWorksheet.UsedRange;
                     mainDataArray = mainExcelRange.Value;
 
-                    progressBar1.Value++;
+                    //progressBar1.Value++;
                 }
+
+                // 修正：最後一個 progressBar1.Value++ 可能導致超過 Maximum
+                if (progressBar1.Value < progressBar1.Maximum)
+                    progressBar1.Value++;
+                else
+                    progressBar1.Value = progressBar1.Maximum;
 
                 Thread.Sleep(1000);
                 mainWorkbook.Save();

@@ -44,60 +44,6 @@ namespace _231211A
                 listBoxFiles.Items.Remove(listBoxFiles.SelectedItems[0]);
         }
 
-        private int FindLastNonEmptyColumnValueInRow(object[,] dataArray, int rowIndex)
-        {
-            for (int col = dataArray.GetLength(1); col >= 1; col--)
-            {
-                if (dataArray[rowIndex, col] != null)
-                {
-                    if (int.TryParse(dataArray[rowIndex, col].ToString(), out int result))
-                    {
-                        return result;
-                    }
-                }
-            }
-            return 0; // 預設值為 0
-        }
-
-        private void ExecuteCmdCommand(string command)
-        {
-            ProcessStartInfo processStartInfo = new ProcessStartInfo("cmd.exe", "/c " + command);
-            processStartInfo.RedirectStandardOutput = true;
-            processStartInfo.UseShellExecute = false;
-            processStartInfo.CreateNoWindow = true;
-
-            using (Process process = new Process())
-            {
-                process.StartInfo = processStartInfo;
-                process.Start();
-
-                string result = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
-
-                MessageBox.Show(result);
-            }
-        }
-        private void Form1_Load(object sender, EventArgs e)
-        {
-        }
-        private void Form1_Load_1(object sender, EventArgs e)
-        {
-        }
-
-
-        #region 保護區塊: 請勿修改
-private void button2_Click(object sender, EventArgs e)
-{
-    ExcelMergerApi.MergeFiles(listBoxFiles, progressBar1, labelCurrentFile);
-}
-#endregion
-
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        
         private void buttonMoveUp_Click(object sender, EventArgs e)
         {
             if (listBoxFiles.SelectedItem == null || listBoxFiles.SelectedIndex <= 0)
@@ -151,5 +97,16 @@ private void button2_Click(object sender, EventArgs e)
                 }
             }
         }
+        #region 保護區塊: 請勿修改
+private void button2_Click(object sender, EventArgs e)
+{
+    ExcelMergerApi.MergeFiles(listBoxFiles, progressBar1, labelCurrentFile);
+}
+#endregion
+
+private void label1_Click(object sender, EventArgs e)
+{
+    // 保留空事件，避免編譯錯誤
+}
     }
 }
