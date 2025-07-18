@@ -44,6 +44,11 @@ namespace _231211A
                 int totalRows = 0;
                 foreach (var secondaryFileName in secondaryFileNames)
                 {
+                    if (!File.Exists(secondaryFileName))
+                    {
+                        MessageBox.Show($"檔案不存在: {secondaryFileName}");
+                        continue;
+                    }
                     var workbook = excelApp.Workbooks.Open(secondaryFileName);
                     Excel.Worksheet worksheet = workbook.Worksheets[1];
                     Excel.Range excelRange = worksheet.UsedRange;
@@ -62,6 +67,11 @@ namespace _231211A
                     labelCurrentFile.Text = $"目前執行到的檔案：{Path.GetFileName(secondaryFileName)}";
                     Application.DoEvents();
 
+                    if (!File.Exists(secondaryFileName))
+                    {
+                        MessageBox.Show($"檔案不存在: {secondaryFileName}");
+                        continue;
+                    }
                     var workbook = excelApp.Workbooks.Open(secondaryFileName);
                     workbooks.Add(workbook);
                     Excel.Worksheet worksheet = workbook.Worksheets[1];
@@ -75,7 +85,7 @@ namespace _231211A
                     {
                         for (int k = 1; k < lastRow; k++)
                         {
-                            bool isequal = EqualityComparer<string>.Default.Equals(dataArray[j, 3]?.ToString().Trim(), mainDataArray[k, 1]?.ToString().Trim());
+                            bool isequal = EqualityComparer<string>.Default.Equals(dataArray[j, 3]?.ToString()?.Trim(), mainDataArray[k, 1]?.ToString()?.Trim());
                             if (isequal)
                             {
                                 int last = mainExcelRange.Columns.Count;
@@ -114,7 +124,7 @@ namespace _231211A
                                         }
 
                                         object co = dataArray[j, 6];
-                                        int f2 = Convert.ToInt32(co);
+                                        int f2 = co != null && int.TryParse(co.ToString(), out int tmpF2) ? tmpF2 : 0;
                                         mainWorksheet.Cells[k, col + 2].Value = f2;
 
                                         object addob = dataArray[j, 8];
@@ -126,7 +136,9 @@ namespace _231211A
                                             }
                                         }
 
-                                        double originalvalue = worksheet.Cells[j, 10].Value;
+                                        double originalvalue = 0;
+                                        if (worksheet.Cells[j, 10].Value != null)
+                                            double.TryParse(worksheet.Cells[j, 10].Value.ToString(), out originalvalue);
                                         int fourtofive = (int)Math.Round(originalvalue, MidpointRounding.AwayFromZero);
                                         mainWorksheet.Cells[k, col + 3].Value = fourtofive;
 
@@ -144,7 +156,7 @@ namespace _231211A
                             progressBar1.Value = progressBar1.Maximum;
                         else
                             progressBar1.Value = progressValue;
-                        labelCurrentFile.Text = $"目前執行到的檔案：{Path.GetFileName(secondaryFileName)} {j}/{lastRow1}";
+                        labelCurrentFile.Text = $"目前執行到的檔案：{Path.GetFileName(secondaryFileName)} {j}/{lastRow1} ({(int)((double)progressValue/progressBar1.Maximum*100)}%)";
                         Application.DoEvents();
                     }
 
@@ -190,15 +202,7 @@ namespace _231211A
                     mainWorksheet = mainWorkbook.Worksheets[1];
                     mainExcelRange = mainWorksheet.UsedRange;
                     mainDataArray = mainExcelRange.Value;
-
-                    //progressBar1.Value++;
                 }
-
-                // 修正：最後一個 progressBar1.Value++ 可能導致超過 Maximum
-                if (progressBar1.Value < progressBar1.Maximum)
-                    progressBar1.Value++;
-                else
-                    progressBar1.Value = progressBar1.Maximum;
 
                 Thread.Sleep(1000);
                 mainWorkbook.Save();
@@ -208,6 +212,14 @@ namespace _231211A
                 MessageBox.Show("執行完成");
                 Application.Exit();
             }
+            catch (FileNotFoundException fnfEx)
+            {
+                MessageBox.Show($"檔案找不到: {fnfEx.FileName}");
+            }
+            catch (COMException comEx)
+            {
+                MessageBox.Show($"Excel COM 錯誤: {comEx.Message}");
+            }
             catch (Exception ex)
             {
                 ExecuteCmdCommand("taskkill /f /im excel.exe");
@@ -215,12 +227,12 @@ namespace _231211A
             }
             finally
             {
-                if (mainWorkbook != null) Marshal.ReleaseComObject(mainWorkbook);
+                try { if (mainWorkbook != null) Marshal.ReleaseComObject(mainWorkbook); } catch { }
                 foreach (var workbook in workbooks)
                 {
-                    if (workbook != null) Marshal.ReleaseComObject(workbook);
+                    try { if (workbook != null) Marshal.ReleaseComObject(workbook); } catch { }
                 }
-                if (excelApp != null) Marshal.ReleaseComObject(excelApp);
+                try { if (excelApp != null) Marshal.ReleaseComObject(excelApp); } catch { }
             }
         }
 
