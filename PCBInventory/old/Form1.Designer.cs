@@ -153,7 +153,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1420, 478);
+            ClientSize = new Size(892, 478);
             Controls.Add(label1);
             Controls.Add(labelCurrentFile);
             Controls.Add(labelProgress);
@@ -166,7 +166,7 @@
             Controls.Add(buttonMoveUp);
             Controls.Add(labelRev4);
             Name = "Form1";
-            Text = "PCB 扣帳系統 - 庫存管理";
+            Text = "扣帳軟體";
             ResumeLayout(false);
             PerformLayout();
         }
