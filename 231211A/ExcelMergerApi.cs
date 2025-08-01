@@ -124,8 +124,13 @@ namespace _231211A
                                         }
 
                                         object co = dataArray[j, 6];
-                                        int f2 = co != null && int.TryParse(co.ToString(), out int tmpF2) ? tmpF2 : 0;
+                                        //MessageBox.Show(co.ToString());
+                                        double f2 = co != null && double.TryParse(co.ToString(), out double tmpF2)
+                                        ? Math.Round(tmpF2, MidpointRounding.AwayFromZero)
+    :                                   0;
+
                                         mainWorksheet.Cells[k, col + 2].Value = f2;
+                                        //MessageBox.Show(f2.ToString());
 
                                         object addob = dataArray[j, 8];
                                         if (addob != null && addob.ToString().Trim() != "-")
