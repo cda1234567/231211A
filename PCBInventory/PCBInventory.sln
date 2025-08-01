@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCBInventory", "PCBInventory.csproj", "{1E18A4EE-5C03-8B91-F807-296F23E2A2BA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1E18A4EE-5C03-8B91-F807-296F23E2A2BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E18A4EE-5C03-8B91-F807-296F23E2A2BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E18A4EE-5C03-8B91-F807-296F23E2A2BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E18A4EE-5C03-8B91-F807-296F23E2A2BA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1D7844AF-CB79-4967-BEDA-845039C8CDF6}
+	EndGlobalSection
+EndGlobal

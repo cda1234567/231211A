@@ -4,18 +4,22 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Threading;
+using System.Drawing;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace _231211A
 {
     public static class ExcelMergerApi
     {
-        public static void MergeFiles(ListBox listBoxFiles, ProgressBar progressBar1, Label labelCurrentFile)
+        private static Dictionary<string, Dictionary<string, double>> _dispatchData = new Dictionary<string, Dictionary<string, double>>();
+        
+        public static string MergeFiles(ListBox listBoxFiles, ProgressBar progressBar1, Label labelCurrentFile)
         {
             if (listBoxFiles.Items.Count < 2)
             {
                 MessageBox.Show("請選擇至少兩個檔案");
-                return;
+                return string.Empty;
             }
 
             string mainFileName = listBoxFiles.Items[0].ToString();
@@ -23,22 +27,28 @@ namespace _231211A
             for (int i = 1; i < listBoxFiles.Items.Count; i++)
                 secondaryFileNames.Add(listBoxFiles.Items[i].ToString());
 
-            Excel.Application excelApp = null;
-            Excel.Workbook mainWorkbook = null;
+            Excel.Application? excelApp = null;
+            Excel.Workbook? mainWorkbook = null;
             List<Excel.Workbook> workbooks = new List<Excel.Workbook>();
-            string lastMainSavePath = null;
+            string folderPath = string.Empty;
 
+            var orderedSavedSecondaryFiles = new List<string>();
+            var dispatchedOnce = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var fileNameCount = new Dictionary<string, int>();
 
             try
             {
                 excelApp = new Excel.Application();
+                excelApp.DisplayAlerts = false;
+
                 mainWorkbook = excelApp.Workbooks.Open(mainFileName);
                 Excel.Worksheet mainWorksheet = mainWorkbook.Worksheets[1];
                 Excel.Range mainExcelRange = mainWorksheet.UsedRange;
                 object[,] mainDataArray = mainExcelRange.Value;
 
-                string folderPath = @"\\St-nas\個人資料夾\Andy\excel\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm");
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string baseFolder = @"\\St-nas\個人資料夾\Andy\excel";
+                folderPath = Path.Combine(baseFolder, $"{Path.GetFileNameWithoutExtension(mainFileName)}_{timestamp}");
                 Directory.CreateDirectory(folderPath);
 
                 int totalRows = 0;
@@ -58,7 +68,7 @@ namespace _231211A
                     Marshal.ReleaseComObject(worksheet);
                     Marshal.ReleaseComObject(excelRange);
                 }
-                progressBar1.Maximum = totalRows;
+                progressBar1.Maximum = Math.Max(totalRows, 1);
                 progressBar1.Value = 0;
                 int progressValue = 0;
 
@@ -78,139 +88,153 @@ namespace _231211A
                     Excel.Range excelRange = worksheet.UsedRange;
                     object[,] dataArray = excelRange.Value;
 
-                    int lastRow = mainExcelRange.Rows.Count;
-                    int lastRow1 = excelRange.Rows.Count;
+                    int lastRowMain = mainWorksheet.UsedRange.Rows.Count;
+                    int lastRowSec = excelRange.Rows.Count;
 
-                    for (int j = 1; j <= lastRow1; j++)
+                    int baseCol = ((Excel.Range)mainWorksheet.Cells[1, mainWorksheet.Columns.Count])
+                        .get_End(Excel.XlDirection.xlToLeft).Column;
+
+                    // 標題：不寫 Dispatch，產品欄自動換行，且不填任何底色
+                    string orderRaw = null;
+                    try { orderRaw = dataArray[1, 7]?.ToString(); } catch { orderRaw = null; }
+                    if (string.IsNullOrEmpty(orderRaw))
                     {
-                        for (int k = 1; k < lastRow; k++)
+                        try { orderRaw = dataArray[1, 8]?.ToString(); } catch { orderRaw = null; }
+                    }
+                    string orderLast8 = string.IsNullOrEmpty(orderRaw) ? string.Empty : (orderRaw.Length >= 8 ? orderRaw[^8..] : orderRaw);
+                    string productName = string.Empty;
+                    try { productName = dataArray[2, 3]?.ToString() ?? string.Empty; } catch { productName = string.Empty; }
+
+                    mainWorksheet.Cells[1, baseCol + 1].Value = string.Empty; // 不顯示 Dispatch
+                    mainWorksheet.Cells[1, baseCol + 2].Value = orderLast8;
+                    mainWorksheet.Cells[1, baseCol + 3].Value = productName;
+
+                    var hdr1 = (Excel.Range)mainWorksheet.Cells[1, baseCol + 1];
+                    var hdr2 = (Excel.Range)mainWorksheet.Cells[1, baseCol + 2];
+                    var hdr3 = (Excel.Range)mainWorksheet.Cells[1, baseCol + 3];
+                    hdr1.Font.Name = hdr2.Font.Name = hdr3.Font.Name = "Arial";
+                    hdr1.Font.Size = hdr2.Font.Size = hdr3.Font.Size = 9;
+                    hdr3.WrapText = true; hdr3.EntireColumn.WrapText = true; hdr3.EntireRow.AutoFit();
+                    // 清除標題底色
+                    ClearCellFill(hdr1); ClearCellFill(hdr2); ClearCellFill(hdr3);
+
+                    for (int j = 2; j <= lastRowSec; j++)
+                    {
+                        bool skipRow = false;
+                        if (dataArray.GetLength(1) >= 7 && dataArray[j, 7] != null && IsDashLike(dataArray[j, 7].ToString())) skipRow = true;
+                        if (dataArray.GetLength(1) >= 8 && dataArray[j, 8] != null && IsDashLike(dataArray[j, 8].ToString())) skipRow = true;
+                        if (skipRow)
                         {
-                            bool isequal = EqualityComparer<string>.Default.Equals(dataArray[j, 3]?.ToString()?.Trim(), mainDataArray[k, 1]?.ToString()?.Trim());
-                            if (isequal)
+                            progressValue++;
+                            UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
+                            continue;
+                        }
+
+                        string secPart = dataArray[j, 3]?.ToString()?.Trim() ?? string.Empty; // C 欄 料號
+                        if (string.IsNullOrEmpty(secPart))
+                        {
+                            progressValue++;
+                            UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
+                            continue;
+                        }
+
+                        int mainRowIndex = -1;
+                        for (int k = 2; k <= lastRowMain; k++)
+                        {
+                            if (string.Equals(secPart, mainDataArray[k, 1]?.ToString()?.Trim(), StringComparison.OrdinalIgnoreCase))
+                            { mainRowIndex = k; break; }
+                        }
+                        if (mainRowIndex == -1)
+                        {
+                            progressValue++;
+                            UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
+                            continue;
+                        }
+
+                        // 寫本檔需求值到主檔中間欄
+                        double f2 = 0;
+                        if (dataArray.GetLength(1) >= 6 && dataArray[j, 6] != null && double.TryParse(dataArray[j, 6].ToString(), out double tmpF2))
+                            f2 = Math.Round(tmpF2, MidpointRounding.AwayFromZero);
+                        var midCell = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 2];
+                        midCell.Value = f2; // 中間欄
+                        ClearCellFill(midCell);
+
+                        // 將主檔此列目前最右值給副檔 G 欄，讓副檔公式推到 J 欄
+                        int prevFinal = FindLastNonEmptyColumnValueInRow(mainDataArray, mainRowIndex);
+                        var gCell = (Excel.Range)worksheet.Cells[j, 7];
+                        if (prevFinal != 0)
+                        {
+                            gCell.Value = prevFinal; // G 欄
+                            ApplySecondaryCellStyle(gCell);
+                        }
+                        else
+                        {
+                            // 需求：當 J 欄已有值時，補 0 到 G 欄
+                            object jRaw = worksheet.Cells[j, 10]?.Value;
+                            if (jRaw != null && !string.IsNullOrWhiteSpace(jRaw.ToString()))
                             {
-                                int last = mainExcelRange.Columns.Count;
-                                for (int col = last; col >= 1; col--)
-                                {
-                                    if (mainExcelRange.Cells[1, col].Value != null)
-                                    {
-                                        object fo = dataArray[1, 7];
-                                        string g3 = (fo != null) ? fo.ToString() : string.Empty;
-                                        string lastEightDigits = (g3.Length >= 8) ? g3.Substring(g3.Length - 8) : g3;
-
-                                        mainWorksheet.Cells[1, col + 3].Value = dataArray[2, 3];
-
-                                        Excel.Range cell = mainWorksheet.Cells[1, col + 3];
-                                        Excel.Font font = cell.Font;
-                                        font.Name = "Arial";
-                                        font.Size = 9;
-                                        cell.WrapText = true;
-
-                                        mainWorksheet.Cells[1, col + 2].Value = lastEightDigits;
-
-                                        Excel.Range cell1 = mainWorksheet.Cells[1, col + 2];
-                                        Excel.Font font1 = cell1.Font;
-                                        font1.Name = "Arial";
-                                        font1.Size = 9;
-                                        cell1.WrapText = true;
-
-                                        int last1 = FindLastNonEmptyColumnValueInRow(mainDataArray, k);
-                                        if (dataArray[j, 7] != null && dataArray[j, 7].ToString().Trim() == "-")
-                                        {
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            worksheet.Cells[j, 7].Value = last1;
-                                        }
-
-                                        object co = dataArray[j, 6];
-                                        int f2 = co != null && int.TryParse(co.ToString(), out int tmpF2) ? tmpF2 : 0;
-                                        mainWorksheet.Cells[k, col + 2].Value = f2;
-
-                                        object addob = dataArray[j, 8];
-                                        if (addob != null && addob.ToString().Trim() != "-")
-                                        {
-                                            if (int.TryParse(addob?.ToString(), out int f3) && f3 != 0)
-                                            {
-                                                mainWorksheet.Cells[k, col + 1].Value = f3;
-                                            }
-                                        }
-
-                                        double originalvalue = 0;
-                                        if (worksheet.Cells[j, 10].Value != null)
-                                            double.TryParse(worksheet.Cells[j, 10].Value.ToString(), out originalvalue);
-                                        int fourtofive = (int)Math.Round(originalvalue, MidpointRounding.AwayFromZero);
-                                        mainWorksheet.Cells[k, col + 3].Value = fourtofive;
-
-                                        if (originalvalue < 0)
-                                        {
-                                            mainWorksheet.Cells[k, col + 3].Interior.Color = ColorTranslator.ToOle(Color.Red);
-                                        }
-                                        break;
-                                    }
-                                }
+                                gCell.Value = 0;
+                                ApplySecondaryCellStyle(gCell);
                             }
                         }
+                        ClearCellFill(gCell); // 清除副檔 G 欄底色
+
+                        // 若第二次合併且之前有發料（由彈窗記錄），只寫在第一次出現時，用於副檔公式
+                        double dispatchQtyPreset = GetDispatchQuantity("main", secPart);
+                        if (dispatchQtyPreset > 0 && !dispatchedOnce.Contains(secPart))
+                        {
+                            var dispatchCell = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 1];
+                            dispatchCell.Value = dispatchQtyPreset.ToString("F0");
+                            ClearCellFill(dispatchCell);
+                            dispatchedOnce.Add(secPart);
+                        }
+
+                        // 從副檔讀回 J 欄結算值，回寫主檔右欄；不做任何底色處理（清掉任何現有底色）
+                        double jValue = 0;
+                        if (worksheet.Cells[j, 10].Value != null)
+                            double.TryParse(worksheet.Cells[j, 10].Value.ToString(), out jValue);
+                        int finalRounded = (int)Math.Round(jValue, MidpointRounding.AwayFromZero);
+                        var outCell = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 3];
+                        outCell.Value = finalRounded;
+                        // 取消所有底色（包含原本負數標紅）
+                        ClearCellFill(outCell);
+
                         progressValue++;
-                        if (progressValue > progressBar1.Maximum)
-                            progressBar1.Value = progressBar1.Maximum;
-                        else
-                            progressBar1.Value = progressValue;
-                        labelCurrentFile.Text = $"目前執行到的檔案：{Path.GetFileName(secondaryFileName)} {j}/{lastRow1} ({(int)((double)progressValue/progressBar1.Maximum*100)}%)";
+                        UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
                         Application.DoEvents();
                     }
 
                     string baseName = Path.GetFileNameWithoutExtension(secondaryFileName);
                     string ext = Path.GetExtension(secondaryFileName);
                     string saveName = baseName + ext;
-
-                    if (!fileNameCount.ContainsKey(baseName))
-                        fileNameCount[baseName] = 0;
+                    if (!fileNameCount.ContainsKey(baseName)) fileNameCount[baseName] = 0;
                     fileNameCount[baseName]++;
-                    if (fileNameCount[baseName] > 1)
-                        saveName = $"{baseName}-{fileNameCount[baseName]}{ext}";
+                    if (fileNameCount[baseName] > 1) saveName = $"{baseName}-{fileNameCount[baseName]}{ext}";
 
                     string secondarySavePath = Path.Combine(folderPath, saveName);
                     workbook.SaveAs(secondarySavePath);
                     workbook.Close();
 
-                    string mainBaseName = Path.GetFileNameWithoutExtension(mainFileName);
-                    string mainExt = Path.GetExtension(mainFileName);
-                    string mainSaveName = mainBaseName + mainExt;
-                    if (!fileNameCount.ContainsKey(mainBaseName + "_main"))
-                        fileNameCount[mainBaseName + "_main"] = 0;
-                    fileNameCount[mainBaseName + "_main"]++;
-                    if (fileNameCount[mainBaseName + "_main"] > 1)
-                        mainSaveName = $"{mainBaseName}_main-{fileNameCount[mainBaseName + "_main"]}{mainExt}";
-                    else
-                        mainSaveName = $"{mainBaseName}_main{mainExt}";
+                    orderedSavedSecondaryFiles.Add(Path.GetFileName(secondarySavePath));
 
-                    if (lastMainSavePath != null && File.Exists(lastMainSavePath))
-                    {
-                        try { File.Delete(lastMainSavePath); } catch { }
-                    }
-                    string mainSavePath = Path.Combine(folderPath, mainSaveName);
-                    mainWorkbook.SaveAs(mainSavePath);
-                    lastMainSavePath = mainSavePath;
-
-                    Marshal.ReleaseComObject(mainWorksheet);
-                    Marshal.ReleaseComObject(mainExcelRange);
-                    mainWorkbook.Close(false);
-                    Marshal.ReleaseComObject(mainWorkbook);
-
-                    mainWorkbook = excelApp.Workbooks.Open(mainSavePath);
-                    mainWorksheet = mainWorkbook.Worksheets[1];
+                    // 更新 main 範圍
                     mainExcelRange = mainWorksheet.UsedRange;
                     mainDataArray = mainExcelRange.Value;
                 }
 
-                Thread.Sleep(1000);
-                mainWorkbook.Save();
-                mainWorkbook.Close();
+                try
+                {
+                    var manifestPath = Path.Combine(folderPath, "__order.txt");
+                    File.WriteAllLines(manifestPath, orderedSavedSecondaryFiles);
+                }
+                catch { }
 
+                string mainSaveName = $"{Path.GetFileNameWithoutExtension(mainFileName)}_main{Path.GetExtension(mainFileName)}";
+                string mainSavePath = Path.Combine(folderPath, mainSaveName);
+                mainWorkbook.SaveAs(mainSavePath);
+                Thread.Sleep(300);
+                mainWorkbook.Close();
                 excelApp.Quit();
-                MessageBox.Show("執行完成");
-                Application.Exit();
             }
             catch (FileNotFoundException fnfEx)
             {
@@ -228,12 +252,10 @@ namespace _231211A
             finally
             {
                 try { if (mainWorkbook != null) Marshal.ReleaseComObject(mainWorkbook); } catch { }
-                foreach (var workbook in workbooks)
-                {
-                    try { if (workbook != null) Marshal.ReleaseComObject(workbook); } catch { }
-                }
+                foreach (var wb in workbooks) { try { if (wb != null) Marshal.ReleaseComObject(wb); } catch { } }
                 try { if (excelApp != null) Marshal.ReleaseComObject(excelApp); } catch { }
             }
+            return folderPath;
         }
 
         private static int FindLastNonEmptyColumnValueInRow(object[,] dataArray, int rowIndex)
@@ -243,31 +265,97 @@ namespace _231211A
                 if (dataArray[rowIndex, col] != null)
                 {
                     if (int.TryParse(dataArray[rowIndex, col].ToString(), out int result))
-                    {
                         return result;
-                    }
                 }
             }
             return 0;
         }
 
+        // 判斷是否為各種「-」符號
+        private static bool IsDashLike(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            string t = s.Trim();
+            return t == "-" || t == "－" || t == "?" || t == "—" || t == "–";
+        }
+
+        // 套用附檔寫入字型：新細明體、非粗體、大小 8
+        private static void ApplySecondaryCellStyle(Excel.Range cell)
+        {
+            try
+            {
+                cell.Font.Name = "PMingLiU"; // 新細明體
+                cell.Font.Bold = false;
+                cell.Font.Size = 8;
+            }
+            catch { }
+        }
+
+        // 清除儲存格底色（確保不殘留任何顏色）
+        private static void ClearCellFill(Excel.Range cell)
+        {
+            try
+            {
+                var interior = cell.Interior;
+                interior.Pattern = Excel.XlPattern.xlPatternNone;
+                interior.TintAndShade = 0;
+                interior.ColorIndex = Excel.XlColorIndex.xlColorIndexNone;
+            }
+            catch { }
+        }
+
         private static void ExecuteCmdCommand(string command)
         {
-            ProcessStartInfo processStartInfo = new ProcessStartInfo("cmd.exe", "/c " + command);
-            processStartInfo.RedirectStandardOutput = true;
-            processStartInfo.UseShellExecute = false;
-            processStartInfo.CreateNoWindow = true;
+            ProcessStartInfo processStartInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
             using (Process process = new Process())
             {
                 process.StartInfo = processStartInfo;
                 process.Start();
-
                 string result = process.StandardOutput.ReadToEnd();
                 process.WaitForExit();
-
                 MessageBox.Show(result);
             }
+        }
+
+        public static void SetDispatchData(string fileName, string partNumber, double dispatchQuantity)
+        {
+            if (!_dispatchData.ContainsKey(fileName))
+                _dispatchData[fileName] = new Dictionary<string, double>();
+            _dispatchData[fileName][partNumber] = dispatchQuantity;
+        }
+        public static void ClearDispatchData() => _dispatchData.Clear();
+        private static double GetDispatchQuantity(string fileName, string partNumber)
+            => _dispatchData.ContainsKey(fileName) && _dispatchData[fileName].ContainsKey(partNumber)
+                ? _dispatchData[fileName][partNumber] : 0;
+
+        public static void DebugDispatchData()
+        {
+            var debug = "發料數據內容：\n";
+            foreach (var fileData in _dispatchData)
+            {
+                debug += $"檔案: {fileData.Key}\n";
+                foreach (var partData in fileData.Value)
+                    debug += $"  料號: {partData.Key} = {partData.Value}\n";
+            }
+            System.Diagnostics.Debug.WriteLine(debug);
+        }
+
+        private static void UpdateProgressBar(ProgressBar progressBar1, Label labelCurrentFile, string fileName, int currentRow, int totalRows, int progressValue)
+        {
+            try
+            {
+                int max = Math.Max(progressBar1.Maximum, 1);
+                progressBar1.Value = Math.Min(progressValue, max);
+                int percent = (int)((double)progressBar1.Value / max * 100);
+                labelCurrentFile.Text = $"目前執行到的檔案：{fileName} {currentRow}/{totalRows} ({percent}%)";
+            }
+            catch { }
         }
     }
 }
