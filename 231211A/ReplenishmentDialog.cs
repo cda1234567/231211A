@@ -43,7 +43,6 @@ namespace _231211A
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.BackColor = Color.FromArgb(248, 249, 250);
-            this.TopMost = false; // 改為非全域置頂，僅隨 Owner 置於上層
 
             // 標題
             lblTitle = new Label
