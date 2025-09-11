@@ -196,8 +196,13 @@ namespace _231211A
                         int finalRounded = (int)Math.Round(jValue, MidpointRounding.AwayFromZero);
                         var outCell = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 3];
                         outCell.Value = finalRounded;
-                        // 取消所有底色（包含原本負數標紅）
+                        // 先清除底色
                         ClearCellFill(outCell);
+                        // 主檔若為負數，補上紅底
+                        if (finalRounded < 0)
+                        {
+                            ApplyNegativeFill(outCell);
+                        }
 
                         progressValue++;
                         UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
@@ -300,6 +305,21 @@ namespace _231211A
                 interior.Pattern = Excel.XlPattern.xlPatternNone;
                 interior.TintAndShade = 0;
                 interior.ColorIndex = Excel.XlColorIndex.xlColorIndexNone;
+            }
+            catch { }
+        }
+
+        // 將 interior.Pattern = Excel.XlPattern.xlSolid; 改為 interior.Pattern = Excel.XlPattern.xlPatternSolid;
+        // xlPatternSolid 是正確的 enum 成員名稱
+        private static void ApplyNegativeFill(Excel.Range cell)
+        {
+            try
+            {
+                var interior = cell.Interior;
+                interior.Pattern = Excel.XlPattern.xlPatternSolid;
+                interior.TintAndShade = 0;
+                // 使用淡紅色，避免文字難以辨識
+                interior.Color = ColorTranslator.ToOle(Color.FromArgb(255, 199, 206));
             }
             catch { }
         }

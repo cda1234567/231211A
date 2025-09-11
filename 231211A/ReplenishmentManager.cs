@@ -266,11 +266,6 @@ namespace _231211A
                     processed++;
                     progressBar.Value = processed;
 
-                    string part = ws.Cells[r, 3].Value?.ToString()?.Trim() ?? string.Empty;
-                    if (string.IsNullOrEmpty(part)) continue;
-                    if (_processedPartNumbers.Contains(part)) continue;
-
-                    double finalStock = finalStockByPart[part]; // 主檔最終庫存（負）
                     string description = cols >= 4 ? (ws.Cells[r, 4].Value?.ToString()?.Trim() ?? string.Empty) : string.Empty;
 
                     // 對話框顯示以主檔最終值為準（讀不到則退回本檔 J）
