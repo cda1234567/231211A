@@ -118,9 +118,9 @@
             labelProgress.AutoSize = true;
             labelProgress.Location = new Point(12, 430);
             labelProgress.Name = "labelProgress";
-            labelProgress.Size = new Size(61, 15);
+            labelProgress.Size = new Size(0, 15);
             labelProgress.TabIndex = 5;
-            labelProgress.Text = "進度：0%";
+            labelProgress.Click += labelProgress_Click;
             // 
             // labelCurrentFile
             // 
@@ -147,7 +147,7 @@
             label1.Name = "label1";
             label1.Size = new Size(35, 15);
             label1.TabIndex = 8;
-            label1.Text = "Rev4";
+            label1.Text = "Rev5";
             // 
             // Form1
             // 
