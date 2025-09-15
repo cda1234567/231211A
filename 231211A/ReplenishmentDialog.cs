@@ -18,6 +18,7 @@ namespace _231211A
         private Label lblDispatchAmount = null!;
         private Label lblSnapshot = null!;
         private Label lblSnapshotInfo = null!;
+        private Label lblMOQ = null!;
         private TextBox txtDispatchAmount = null!;
         private Button btnOK = null!;
         private Button btnSkip = null!;
@@ -30,13 +31,13 @@ namespace _231211A
         public bool IsShortageConfirmed { get; private set; }
         public ShortageDecision Decision { get; private set; } = ShortageDecision.None;
         public double SnapshotQty { get; set; } // パ场猔膀非畐
+        public double MOQ { get; set; } // 穝糤パ场猔 MOQ
 
         public ReplenishmentDialog(ReplenishmentItem item, int fileIndex)
         {
             _item = item;
             _fileIndex = fileIndex;
             InitializeComponent();
-            // ┑竕﹚ OnShown ㄆン絋玂 SnapshotQty パ场砞﹚
         }
 
         protected override void OnShown(EventArgs e)
@@ -48,7 +49,7 @@ namespace _231211A
         private void InitializeComponent()
         {
             this.Text = "祇絋粄";
-            this.Size = new Size(520, 400);
+            this.Size = new Size(520, 420);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -76,20 +77,24 @@ namespace _231211A
             lblSnapshotInfo = new Label { Text = "膀非ㄓ方/丁", Location = new Point(20, 195), Size = new Size(460, 18), ForeColor = Color.FromArgb(108, 117, 125) };
             this.Controls.Add(lblSnapshotInfo);
 
-            lblDispatchAmount = new Label { Text = "セΩ干(祇)计秖", Location = new Point(20, 225), Size = new Size(150, 24) };
+            // MOQ 陪ボ
+            lblMOQ = new Label { Text = "MOQ", Location = new Point(20, 215), Size = new Size(460, 20), ForeColor = Color.FromArgb(33, 37, 41) };
+            this.Controls.Add(lblMOQ);
+
+            lblDispatchAmount = new Label { Text = "セΩ干(祇)计秖", Location = new Point(20, 245), Size = new Size(150, 24) };
             this.Controls.Add(lblDispatchAmount);
 
-            txtDispatchAmount = new TextBox { Location = new Point(180, 223), Size = new Size(120, 25), Text = _item.ShortageAmount.ToString("F0") };
+            txtDispatchAmount = new TextBox { Location = new Point(180, 243), Size = new Size(120, 25), Text = _item.ShortageAmount.ToString("F0") };
             txtDispatchAmount.KeyPress += TxtDispatchAmount_KeyPress;
             this.Controls.Add(txtDispatchAmount);
 
-            btnOK = new Button { Text = "絋粄", Location = new Point(70, 290), Size = new Size(90, 35), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnOK = new Button { Text = "絋粄", Location = new Point(70, 310), Size = new Size(90, 35), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnOK.Click += BtnOK_Click;
             this.Controls.Add(btnOK);
-            btnSkip = new Button { Text = "铬筁", Location = new Point(180, 290), Size = new Size(90, 35), BackColor = Color.FromArgb(108, 117, 125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnSkip = new Button { Text = "铬筁", Location = new Point(180, 310), Size = new Size(90, 35), BackColor = Color.FromArgb(108, 117, 125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnSkip.Click += BtnSkip_Click;
             this.Controls.Add(btnSkip);
-            btnCancel = new Button { Text = "场", Location = new Point(290, 290), Size = new Size(90, 35), BackColor = Color.FromArgb(73, 80, 87), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnCancel = new Button { Text = "场", Location = new Point(290, 310), Size = new Size(90, 35), BackColor = Color.FromArgb(73, 80, 87), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnCancel.Click += BtnCancel_Click;
             this.Controls.Add(btnCancel);
 
@@ -106,6 +111,8 @@ namespace _231211A
             var src = InventoryBaselineManager.SnapshotSourceFile != null ? System.IO.Path.GetFileName(InventoryBaselineManager.SnapshotSourceFile) : "";
             var timeStr = InventoryBaselineManager.SnapshotTime.HasValue ? InventoryBaselineManager.SnapshotTime.Value.ToString("MM-dd HH:mm") : "";
             lblSnapshotInfo.Text = $"膀非ㄓ方/丁{src} / {timeStr}";
+            // MOQ
+            lblMOQ.Text = $"MOQ{MOQ:F0}";
 
             txtDispatchAmount.Focus();
             txtDispatchAmount.SelectAll();

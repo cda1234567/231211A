@@ -270,7 +270,7 @@ namespace _231211A
             return folderPath;
         }
 
-        // 新增：保留第一張工作表，新增「目標工作表名稱」，並複製 C/D/H 欄資料到新表 A/B/C，帶入 H 欄底色
+        // 新增：保留第一張工作表，新增「目標工作表名稱」，並複製 C/D/H 欄資料到新表 A/B/C，帶入 H 欄底色，全部自動換行；最後切回第一張
         private static void PostProcessSecondaryWorkbook(Excel.Workbook workbook)
         {
             if (workbook == null) return;
@@ -336,7 +336,17 @@ namespace _231211A
                 outRow++;
             }
 
-            try { wsTarget.Columns.AutoFit(); } catch { }
+            // 自動換行（不調整欄寬）
+            try
+            {
+                var used = wsTarget.UsedRange;
+                used.WrapText = true;
+                used.Rows.AutoFit();
+            }
+            catch { }
+
+            // 最後切回第一張工作表
+            try { wsSource.Activate(); } catch { }
         }
 
         private static int FindLastNonEmptyColumnValueInRow(object[,] dataArray, int rowIndex)

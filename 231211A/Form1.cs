@@ -34,6 +34,7 @@ namespace _231211A
         // 主檔案路徑 - 綁定在程式中（此路徑現用作：公司庫存檔，僅供預覽顯示）
         private string mainFilePath = string.Empty;
         private const string MAIN_FILE_CONFIG = "mainfile.config";
+        private bool baselineWarnedThisRun = false; // 新增：避免重複提醒
 
         public Form1()
         {
@@ -166,12 +167,31 @@ namespace _231211A
             Cursor previousCursor = this.Cursor;
             this.Cursor = Cursors.WaitCursor;
 
+            // 新增：鎖定上下相關操作按鈕
+            var toToggle = new Control[]
+            {
+                buttonAddFile, buttonRemoveFile, buttonMoveUp, buttonMoveDown, listBoxFiles,
+                setMainFileButton, btnLoadSnapshot, previewButton, exportButton, btnExportRequirement
+            };
+            foreach (var c in toToggle) if (c != null) c.Enabled = false;
+
             try
             {
                 // 自動備份主檔案（目前備份的是 mainFilePath 所指之公司預覽檔，如需改為備份清單第一個檔案可再調整）
                 if (!string.IsNullOrEmpty(mainFilePath) && File.Exists(mainFilePath))
                 {
                     CreateBackup();
+                }
+
+                // 補：若尚未載入基準，先提醒一次
+                if (!baselineWarnedThisRun && (InventoryBaselineManager.SnapshotTime == null || InventoryBaselineManager.SnapshotStock.Count == 0))
+                {
+                    baselineWarnedThisRun = true;
+                    var dr = MessageBox.Show("尚未載入基準庫存，是否仍要繼續？", "提示", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+                    if (dr != DialogResult.OK)
+                    {
+                        return;
+                    }
                 }
 
                 // 清除之前的發料數據
@@ -254,6 +274,7 @@ namespace _231211A
                 buttonExecute.Enabled = true;
                 buttonExecute.Text = "執行";
                 this.Cursor = previousCursor;
+                foreach (var c in toToggle) if (c != null) c.Enabled = true;
             }
         }
         #endregion
@@ -481,8 +502,20 @@ namespace _231211A
                 mainFilePath = openFileDialog.FileName;
                 SaveMainFileConfig();
                 UpdateMainFileLabel();
-                SetSnapshotFromMainFile(); // 同檔當基準
-                MessageBox.Show("公司庫存檔設定成功，並已作為缺料判斷基準！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // 合併：同時載入為基準
+                try
+                {
+                    InventoryBaselineManager.LoadSnapshot(mainFilePath);
+                    var name = Path.GetFileName(mainFilePath);
+                    lblSnapshotInfo.Text = $"基準: {InventoryBaselineManager.SnapshotTime:MM-dd HH:mm} {name}";
+                    lblSnapshotInfo.ForeColor = Color.FromArgb(40, 167, 69);
+                    MessageBox.Show("公司庫存檔設定成功，並已作為缺料判斷基準！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"載入基準失敗：{ex.Message}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
         }
 

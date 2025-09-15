@@ -16,6 +16,7 @@ namespace _231211A
         public double CurrentStock { get; set; }
         public int TargetColumn { get; set; }
         public double ShortageAmount => System.Math.Abs(CurrentStock);
+        public double MOQ { get; set; } // 新增：來自主檔 C 欄
     }
 
     public class ReplenishmentDialogResult
@@ -50,6 +51,7 @@ namespace _231211A
                 statusLabel.Text = "讀取主檔最終庫存...";
                 Application.DoEvents();
                 var finalStockByPart = ReadMainFinalStock(mainFilePath);
+                var moqByPart = ReadMainMOQ(mainFilePath);
 
                 // 讀取第一次合併時保存的副檔順序（與選檔順序一致）
                 var secondaryFiles = GetOrderedSecondaryFiles(outputFolder);
@@ -66,7 +68,7 @@ namespace _231211A
                     statusLabel.Text = $"處理副檔({fileIndex}/{secondaryFiles.Length}): {Path.GetFileName(filePath)}";
                     Application.DoEvents();
 
-                    ProcessSingleSecondaryFile(filePath, finalStockByPart, fileIndex, progressBar, statusLabel);
+                    ProcessSingleSecondaryFile(filePath, finalStockByPart, moqByPart, fileIndex, progressBar, statusLabel);
                     Application.DoEvents();
                 }
 
@@ -109,6 +111,42 @@ namespace _231211A
                             }
                         }
                         if (found) map[part] = lastNumeric;
+                    }
+                }
+            }
+            finally
+            {
+                try { if (used != null) Marshal.ReleaseComObject(used); } catch { }
+                try { if (ws != null) Marshal.ReleaseComObject(ws); } catch { }
+                try { if (wb != null) { wb.Close(false); Marshal.ReleaseComObject(wb); } } catch { }
+                try { if (app != null) { app.Quit(); Marshal.ReleaseComObject(app); } } catch { }
+            }
+
+            return map;
+        }
+
+        // 新增：自主檔 C 欄讀取 MOQ（A=料號, C=MOQ）
+        private static Dictionary<string, double> ReadMainMOQ(string mainFilePath)
+        {
+            var map = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+            Excel.Application? app = null; Excel.Workbook? wb = null; Excel.Worksheet? ws = null; Excel.Range? used = null;
+            try
+            {
+                app = new Excel.Application { Visible = false, DisplayAlerts = false };
+                wb = app.Workbooks.Open(mainFilePath);
+                ws = (Excel.Worksheet)wb.Worksheets[1];
+                used = ws.UsedRange;
+                if (used?.Value is object[,] data)
+                {
+                    int rows = used.Rows.Count;
+                    for (int r = 2; r <= rows; r++)
+                    {
+                        string part = data[r, 1]?.ToString()?.Trim() ?? string.Empty; // A 欄 料號
+                        if (string.IsNullOrEmpty(part)) continue;
+                        double moq = 0;
+                        if (data[r, 3] != null) double.TryParse(data[r, 3].ToString(), out moq); // C 欄 MOQ
+                        map[part] = moq;
                     }
                 }
             }
@@ -168,7 +206,7 @@ namespace _231211A
         }
 
         // 處理單一副檔：僅對本檔由非負→負的料號詢問補料；其他列自動把 H 補 0（空才補）
-        private static void ProcessSingleSecondaryFile(string filePath, Dictionary<string, double> finalStockByPart, int fileIndex, ProgressBar progressBar, Label statusLabel)
+        private static void ProcessSingleSecondaryFile(string filePath, Dictionary<string, double> finalStockByPart, Dictionary<string, double> moqByPart, int fileIndex, ProgressBar progressBar, Label statusLabel)
         {
             Excel.Application? app = null; Excel.Workbook? wb = null; Excel.Worksheet? ws = null; Excel.Range? used = null;
 
@@ -279,7 +317,8 @@ namespace _231211A
                         PartNumber = part,
                         Description = description,
                         CurrentStock = finalNeg,
-                        TargetColumn = 8
+                        TargetColumn = 8,
+                        MOQ = moqByPart.TryGetValue(part, out var moq) ? moq : 0
                     };
 
                     statusLabel.Text = $"處理發料({processed}/{ordered.Count})：{part}";
@@ -361,7 +400,8 @@ namespace _231211A
         {
             var dialog = new ReplenishmentDialog(item, index)
             {
-                SnapshotQty = InventoryBaselineManager.GetSnapshotQty(item.PartNumber)
+                SnapshotQty = InventoryBaselineManager.GetSnapshotQty(item.PartNumber),
+                MOQ = item.MOQ
             };
             var dr = owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
 
