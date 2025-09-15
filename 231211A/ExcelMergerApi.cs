@@ -209,6 +209,13 @@ namespace _231211A
                         Application.DoEvents();
                     }
 
+                    // 新增：輸出副檔前整理工作表並建立目標工作表
+                    try
+                    {
+                        PostProcessSecondaryWorkbook(workbook);
+                    }
+                    catch { }
+
                     string baseName = Path.GetFileNameWithoutExtension(secondaryFileName);
                     string ext = Path.GetExtension(secondaryFileName);
                     string saveName = baseName + ext;
@@ -261,6 +268,75 @@ namespace _231211A
                 try { if (excelApp != null) Marshal.ReleaseComObject(excelApp); } catch { }
             }
             return folderPath;
+        }
+
+        // 新增：保留第一張工作表，新增「目標工作表名稱」，並複製 C/D/H 欄資料到新表 A/B/C，帶入 H 欄底色
+        private static void PostProcessSecondaryWorkbook(Excel.Workbook workbook)
+        {
+            if (workbook == null) return;
+
+            // 刪除第 2 張以後的所有工作表
+            try
+            {
+                for (int i = workbook.Worksheets.Count; i >= 2; i--)
+                {
+                    var wsDel = (Excel.Worksheet)workbook.Worksheets[i];
+                    wsDel.Delete();
+                }
+            }
+            catch { }
+
+            var wsSource = (Excel.Worksheet)workbook.Worksheets[1];
+
+            // 新增目標工作表
+            Excel.Worksheet wsTarget = (Excel.Worksheet)workbook.Worksheets.Add(After: workbook.Worksheets[workbook.Worksheets.Count]);
+            try
+            {
+                wsTarget.Name = "目標工作表名稱";
+            }
+            catch
+            {
+                try { wsTarget.Name = "目標工作表名稱1"; } catch { }
+            }
+
+            // 取得來源 H 欄最後一列
+            long lastRow = wsSource.Cells[wsSource.Rows.Count, 8].End(Excel.XlDirection.xlUp).Row;
+            int outRow = 1;
+
+            for (int i = 5; i <= lastRow; i++)
+            {
+                object hv = wsSource.Cells[i, 8].Value; // H 欄
+                if (hv == null) continue;
+                string hs = hv.ToString()?.Trim() ?? string.Empty;
+                if (hs == "-" || hs == "---" || hs == "0") continue;
+                if (double.TryParse(hs, out double hd) && Math.Abs(hd) < double.Epsilon) continue;
+
+                // 取消 C:D 合併
+                try
+                {
+                    Excel.Range rng = wsSource.Range[wsSource.Cells[i, 3], wsSource.Cells[i, 4]];
+                    if ((bool)rng.MergeCells) rng.UnMerge();
+                }
+                catch { }
+
+                // 複製值：C,D,H -> A,B,C
+                try { wsTarget.Cells[outRow, 1].Value = wsSource.Cells[i, 3].Value; } catch { }
+                try { wsTarget.Cells[outRow, 2].Value = wsSource.Cells[i, 4].Value; } catch { }
+                try { wsTarget.Cells[outRow, 3].Value = wsSource.Cells[i, 8].Value; } catch { }
+
+                // 複製 H 欄底色到目標 C 欄
+                try
+                {
+                    var srcCell = (Excel.Range)wsSource.Cells[i, 8];
+                    var dstCell = (Excel.Range)wsTarget.Cells[outRow, 3];
+                    dstCell.Interior.Color = srcCell.Interior.Color;
+                }
+                catch { }
+
+                outRow++;
+            }
+
+            try { wsTarget.Columns.AutoFit(); } catch { }
         }
 
         private static int FindLastNonEmptyColumnValueInRow(object[,] dataArray, int rowIndex)

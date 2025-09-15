@@ -13,15 +13,17 @@ namespace _231211A
         public int Row { get; set; }
         public string PartNumber { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public double CurrentStock { get; set; } // 主檔最終庫存（可能為負）
+        public double CurrentStock { get; set; }
         public int TargetColumn { get; set; }
-        public double ShortageAmount => Math.Abs(CurrentStock);
+        public double ShortageAmount => System.Math.Abs(CurrentStock);
     }
 
     public class ReplenishmentDialogResult
     {
         public DialogResult DialogResult { get; set; }
         public double ReplenishmentQuantity { get; set; }
+        // 新增：回傳缺料決策，供後續判斷是否需上色（CreateRequirement）
+        public ShortageDecision Decision { get; set; } = ShortageDecision.None;
     }
 
     public static class ReplenishmentManager
@@ -325,6 +327,17 @@ namespace _231211A
                     ws.Cells[r, 8].Value = qty;                        // H
                     ws.Cells[r, 10].Value = (int)Math.Round(adjusted); // J
 
+                    // 若此筆為「需要採購」決策，將 H 欄塗淡橘色
+                    if (result.Decision == ShortageDecision.CreateRequirement)
+                    {
+                        try
+                        {
+                            var hCell = (Excel.Range)ws.Cells[r, 8];
+                            hCell.Interior.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(255, 248, 225));
+                        }
+                        catch { }
+                    }
+
                     // 記錄到 API，供第二次扣帳用
                     ExcelMergerApi.SetDispatchData("main", part, qty);
 
@@ -346,12 +359,23 @@ namespace _231211A
 
         private static ReplenishmentDialogResult ShowDispatchDialog(ReplenishmentItem item, int index, IWin32Window? owner)
         {
-            using var dialog = new ReplenishmentDialog(item, index);
+            var dialog = new ReplenishmentDialog(item, index)
+            {
+                SnapshotQty = InventoryBaselineManager.GetSnapshotQty(item.PartNumber)
+            };
             var dr = owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
+
+            // 若使用者選擇 ReInput 則再給一次機會（簡化：直接返回 Ignore）
+            if (dialog.Decision == ShortageDecision.ReInput)
+            {
+                return new ReplenishmentDialogResult { DialogResult = DialogResult.Ignore, ReplenishmentQuantity = 0, Decision = dialog.Decision };
+            }
+
             return new ReplenishmentDialogResult
             {
                 DialogResult = dr,
-                ReplenishmentQuantity = dialog.ReplenishmentQuantity
+                ReplenishmentQuantity = dialog.ReplenishmentQuantity,
+                Decision = dialog.Decision
             };
         }
 

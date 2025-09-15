@@ -1,3 +1,4 @@
+using System;
 using Excel = Microsoft.Office.Interop.Excel;
 using System.Collections;
 using System.Runtime.InteropServices;
@@ -25,6 +26,10 @@ namespace _231211A
         private Button setMainFileButton = null!;
         private Label mainFileLabel = null!;
         private Button backupButton = null!;
+        private Button btnLoadSnapshot = null!;
+        private Button btnExportRequirement = null!;
+        private Label lblSnapshotInfo = null!;
+        private ToolTip tips = new ToolTip();
 
         // 主檔案路徑 - 綁定在程式中（此路徑現用作：公司庫存檔，僅供預覽顯示）
         private string mainFilePath = string.Empty;
@@ -54,6 +59,25 @@ namespace _231211A
             {
                 MessageBox.Show($"初始化時發生錯誤：{ex.Message}", "錯誤",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // 新增：以目前公司庫存檔作為基準庫存（缺料判斷用）
+        private void SetSnapshotFromMainFile()
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(mainFilePath) && File.Exists(mainFilePath))
+                {
+                    InventoryBaselineManager.LoadSnapshot(mainFilePath);
+                    var name = Path.GetFileName(mainFilePath);
+                    lblSnapshotInfo.Text = $"基準: {InventoryBaselineManager.SnapshotTime:MM-dd HH:mm} {name}";
+                    lblSnapshotInfo.ForeColor = Color.FromArgb(40, 167, 69);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"載入基準失敗：{ex.Message}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -273,14 +297,14 @@ namespace _231211A
             {
                 Text = "主檔案設定",
                 Location = new Point(10, 40),
-                Size = new Size(460, 80),
+                Size = new Size(460, 110),
                 Font = new Font("Microsoft YaHei", 9)
             };
             inventoryPanel.Controls.Add(mainFileGroupBox);
 
             setMainFileButton = new Button
             {
-                Text = "設定公司庫存檔",
+                Text = "設定公司庫存",
                 Location = new Point(10, 20),
                 Size = new Size(100, 30),
                 BackColor = Color.FromArgb(0, 123, 255),
@@ -289,20 +313,12 @@ namespace _231211A
             };
             setMainFileButton.Click += SetMainFileButton_Click;
             mainFileGroupBox.Controls.Add(setMainFileButton);
-
-            mainFileLabel = new Label
-            {
-                Text = "尚未設定公司庫存檔",
-                Location = new Point(120, 25),
-                Size = new Size(320, 20),
-                ForeColor = Color.FromArgb(108, 117, 125)
-            };
-            mainFileGroupBox.Controls.Add(mainFileLabel);
+            tips.SetToolTip(setMainFileButton, "預覽用：只影響右側表格顯示，不參與缺料判斷");
 
             backupButton = new Button
             {
                 Text = "手動備份",
-                Location = new Point(10, 50),
+                Location = new Point(10, 60),
                 Size = new Size(100, 25),
                 BackColor = Color.FromArgb(40, 167, 69),
                 ForeColor = Color.White,
@@ -311,11 +327,45 @@ namespace _231211A
             backupButton.Click += BackupButton_Click;
             mainFileGroupBox.Controls.Add(backupButton);
 
+            // 載入基準庫存按鈕移入群組
+            btnLoadSnapshot = new Button
+            {
+                Text = "載入基準庫存",
+                Location = new Point(120, 20),
+                Size = new Size(110, 30),
+                BackColor = Color.FromArgb(255, 193, 7), // 橘色以區分功能
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnLoadSnapshot.Click += BtnLoadSnapshot_Click;
+            mainFileGroupBox.Controls.Add(btnLoadSnapshot);
+            tips.SetToolTip(btnLoadSnapshot, "缺料判斷用：建立一次性基準，不影響右側預覽");
+
+            // 主檔案檔名顯示
+            mainFileLabel = new Label
+            {
+                Text = "尚未設定公司庫存檔",
+                Location = new Point(240, 26),
+                Size = new Size(200, 20),
+                ForeColor = Color.FromArgb(108, 117, 125)
+            };
+            mainFileGroupBox.Controls.Add(mainFileLabel);
+
+            // 基準庫存資訊顯示
+            lblSnapshotInfo = new Label
+            {
+                Text = "尚未載入基準",
+                Location = new Point(240, 62),
+                Size = new Size(200, 18),
+                ForeColor = Color.FromArgb(108, 117, 125)
+            };
+            mainFileGroupBox.Controls.Add(lblSnapshotInfo);
+
             // 庫存預覽按鈕
             previewButton = new Button
             {
                 Text = "預覽庫存",
-                Location = new Point(10, 130),
+                Location = new Point(10, 160),
                 Size = new Size(100, 30),
                 BackColor = Color.FromArgb(108, 117, 125),
                 ForeColor = Color.White,
@@ -328,14 +378,14 @@ namespace _231211A
             var searchLabel = new Label
             {
                 Text = "搜尋料號：",
-                Location = new Point(120, 135),
+                Location = new Point(120, 165),
                 Size = new Size(80, 20)
             };
             inventoryPanel.Controls.Add(searchLabel);
 
             searchBox = new TextBox
             {
-                Location = new Point(200, 133),
+                Location = new Point(200, 163),
                 Size = new Size(150, 25),
                 PlaceholderText = "輸入料號或名稱..."
             };
@@ -345,7 +395,7 @@ namespace _231211A
             // 篩選下拉選單
             filterComboBox = new ComboBox
             {
-                Location = new Point(360, 133),
+                Location = new Point(360, 163),
                 Size = new Size(100, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
@@ -357,7 +407,7 @@ namespace _231211A
             // 庫存表格
             inventoryGridView = new DataGridView
             {
-                Location = new Point(10, 170),
+                Location = new Point(10, 200),
                 Size = new Size(460, 220),
                 AllowUserToAddRows = false,
                 ReadOnly = true,
@@ -380,7 +430,7 @@ namespace _231211A
             exportButton = new Button
             {
                 Text = "匯出庫存報表",
-                Location = new Point(10, 400),
+                Location = new Point(10, 430),
                 Size = new Size(120, 30),
                 BackColor = Color.FromArgb(220, 53, 69),
                 ForeColor = Color.White,
@@ -394,11 +444,24 @@ namespace _231211A
             summaryLabel = new Label
             {
                 Text = "庫存統計：0 項目",
-                Location = new Point(140, 405),
+                Location = new Point(140, 435),
                 Size = new Size(200, 20),
                 ForeColor = Color.FromArgb(108, 117, 125)
             };
             inventoryPanel.Controls.Add(summaryLabel);
+
+            // 匯出缺料需求按鈕
+            btnExportRequirement = new Button
+            {
+                Text = "匯出缺料清單",
+                Location = new Point(330, 430),
+                Size = new Size(120, 30),
+                BackColor = Color.FromArgb(255, 99, 71),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnExportRequirement.Click += BtnExportRequirement_Click;
+            inventoryPanel.Controls.Add(btnExportRequirement);
 
             // 調整主窗體大小
             this.Width = 1420;
@@ -411,14 +474,15 @@ namespace _231211A
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Excel 檔案 (*.xls;*.xlsx;*.xlsm;*.xlsb)|*.xls;*.xlsx;*.xlsm;*.xlsb";
-            openFileDialog.Title = "選擇公司庫存檔（預覽用）";
+            openFileDialog.Title = "選擇公司庫存檔（預覽用/基準）";
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 mainFilePath = openFileDialog.FileName;
                 SaveMainFileConfig();
                 UpdateMainFileLabel();
-                MessageBox.Show("公司庫存檔設定成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                SetSnapshotFromMainFile(); // 同檔當基準
+                MessageBox.Show("公司庫存檔設定成功，並已作為缺料判斷基準！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -433,6 +497,7 @@ namespace _231211A
                 {
                     mainFilePath = File.ReadAllText(MAIN_FILE_CONFIG);
                     UpdateMainFileLabel();
+                    SetSnapshotFromMainFile(); // 啟動時若有設定，直接載入為基準
                 }
             }
             catch { }
@@ -664,7 +729,7 @@ namespace _231211A
                     {
                         // 避免使用特殊字元的欄位名稱
                         string columnName = column.ColumnName.Replace("'", "''").Replace("[", "").Replace("]", "");
-                        filterConditions.Add($"Convert([{columnName}], 'System.String') LIKE '%{searchText.Replace("'", "''")}%");
+                        filterConditions.Add($"Convert([{columnName}], 'System.String') LIKE '%{searchText.Replace("'", "''")}%'");
                     }
                 }
 
@@ -919,7 +984,7 @@ namespace _231211A
                     if (mainFiles.Length > 0)
                     {
                         mainFileToProcess = mainFiles[0]; // 使用最新的主檔案
-                    }
+                      }
                 }
 
                 // 處理主檔案的最終負庫存，找出對應的副檔案進行發料
@@ -987,6 +1052,47 @@ namespace _231211A
         private void labelProgress_Click(object sender, EventArgs e)
         {
 
+        }
+
+        /// <summary>
+        /// 載入基準庫存
+        /// </summary>
+        private void BtnLoadSnapshot_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                using var ofd = new OpenFileDialog
+                {
+                    Filter = "Excel (*.xls;*.xlsx)|*.xls;*.xlsx",
+                    Title = "選擇基準庫存檔（缺料判斷用）"
+                };
+                if (ofd.ShowDialog() != DialogResult.OK) return;
+                InventoryBaselineManager.LoadSnapshot(ofd.FileName);
+                var name = Path.GetFileName(InventoryBaselineManager.SnapshotSourceFile ?? ofd.FileName);
+                lblSnapshotInfo.Text = $"基準: {InventoryBaselineManager.SnapshotTime:MM-dd HH:mm} {name}";
+                lblSnapshotInfo.ForeColor = Color.FromArgb(40, 167, 69);
+                MessageBox.Show("基準庫存載入完成","成功");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"載入失敗: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 匯出缺料需求清單
+        /// </summary>
+        private void BtnExportRequirement_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                PurchaseRequirementManager.ExportCsv();
+                MessageBox.Show("已匯出 purchase_requirements.csv","完成");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"匯出失敗: {ex.Message}");
+            }
         }
     }
 }
