@@ -145,9 +145,9 @@
             label1.AutoSize = true;
             label1.Location = new Point(858, 460);
             label1.Name = "label1";
-            label1.Size = new Size(35, 15);
+            label1.Size = new Size(62, 15);
             label1.TabIndex = 8;
-            label1.Text = "Rev5";
+            label1.Text = "Rev1.9.15";
             // 
             // Form1
             // 
