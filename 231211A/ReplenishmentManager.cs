@@ -331,28 +331,11 @@ namespace _231211A
                         statusLabel.Text = "發料處理已取消";
                         return;
                     }
-                    if (result.DialogResult == DialogResult.Ignore)
+                    if (result.DialogResult == DialogResult.Ignore) // "缺料" 按鈕被按下
                     {
-                        // 使用者略過：補 H=0（若尚未是數值且不是 dash-like）；僅對有料號的列
-                        var partText2 = ws.Cells[r, 3].Value?.ToString()?.Trim();
-                        if (!string.IsNullOrEmpty(partText2))
-                        {
-                            var hCellObj2 = ws.Cells[r, 8].Value;
-                            string hText2 = hCellObj2?.ToString();
-                            if (!IsDashLike(hText2))
-                            {
-                                bool hasNumeric2 = false;
-                                if (hCellObj2 != null)
-                                {
-                                    double tmp2; if (double.TryParse(hCellObj2.ToString(), out tmp2)) hasNumeric2 = true;
-                                }
-                                if (!hasNumeric2)
-                                {
-                                    var hCell = (Excel.Range)ws.Cells[r, 8];
-                                    hCell.Value = 0;
-                                }
-                            }
-                        }
+                        // 在副檔 H 欄寫入 "缺"
+                        var hCell = (Excel.Range)ws.Cells[r, 8];
+                        hCell.Value = "缺";
                         _processedPartNumbers.Add(part);
                         continue;
                     }

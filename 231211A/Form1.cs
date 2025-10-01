@@ -59,36 +59,39 @@ namespace _231211A
         public Form1()
         {
             InitializeComponent();
-
             try
             {
-                // 設定緊緻的最小尺寸
                 this.MinimumSize = new Size(1380, 520);
                 this.StartPosition = FormStartPosition.CenterScreen;
                 
-                UiStyle.ApplyTheme(this);
+                // 事件綁定：文件清單操作按鈕
+                if (buttonAddFile != null) buttonAddFile.Click += buttonAddFile_Click;
+                if (buttonRemoveFile != null) buttonRemoveFile.Click += buttonRemoveFile_Click;
+                if (buttonMoveUp != null) buttonMoveUp.Click += buttonMoveUp_Click;
+                if (buttonMoveDown != null) buttonMoveDown.Click += buttonMoveDown_Click;
+
+                // Apply the new Apple-style theme
+                UiStyle.ApplyTheme(this); 
+                
+                // Setup custom gradient background
                 SetupGradientBackground();
                 
-                // 拖曱檔案支援
+                // Drag and drop support
                 listBoxFiles.AllowDrop = true;
                 listBoxFiles.DragEnter += listBoxFiles_DragEnter;
                 listBoxFiles.DragDrop += listBoxFiles_DragDrop;
 
-                // 初始化庫存管理控件
+                // Initialize controls
                 InitializeInventoryControls();
-                
-                // 初始化完成摘要面板
                 InitializeCompletionPanel();
+                TryStyleLeftControls(); // Keep for custom text/sizing
 
-                // 套用左側元件樣式
-                TryStyleLeftControls();
-
-                // 載入主檔案設定（現作為公司庫存檔用於預覽）
+                // Load configurations
                 LoadMainFileConfig();
 
-                // 標題與圖示美化
+                // Final UI setup
                 this.Text = "📋 PCB 扣帳系統 - 庫存管理";
-                SetupAnimations(); // 使用更新後的動畫註冊
+                SetupAnimations();
             }
             catch (Exception ex)
             {
@@ -242,7 +245,7 @@ namespace _231211A
                 Location = new Point(20, 130),
                 Size = new Size(150, 35),
                 Font = UiStyle.BaseFont,
-                BackColor = UiStyle.Primary,
+                BackColor = UiStyle.AccentColor,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 FlatAppearance = { BorderSize = 0 }
@@ -360,65 +363,54 @@ namespace _231211A
 
         private void TryStyleLeftControls()
         {
+            // This method is now mostly obsolete as ApplyTheme handles colors.
+            // We only keep necessary custom text and sizing adjustments.
             try
             {
                 if (listBoxFiles != null) 
                 {
-                    UiStyle.StyleListBox(listBoxFiles);
-                    // 增加拖放視覺提示
                     listBoxFiles.BackColor = Color.FromArgb(249, 250, 251);
                     listBoxFiles.Font = new Font(UiStyle.BaseFont.FontFamily, 9F);
                 }
-                
+
                 if (progressBar1 != null) 
                 {
-                    UiStyle.StyleProgressBar(progressBar1);
-                    progressBar1.Height = 8; // 更現代的細進度條
+                    progressBar1.Height = 8; // Modern thin progress bar
                 }
                 
-                // 按鈕加上圖示和間距
                 if (buttonAddFile != null) 
                 {
-                    UiStyle.StyleButtonPrimary(buttonAddFile);
                     buttonAddFile.Text = "➕ 新增檔案";
                     buttonAddFile.Height = 32;
                 }
                 if (buttonRemoveFile != null) 
                 {
-                    UiStyle.StyleButtonDanger(buttonRemoveFile);
                     buttonRemoveFile.Text = "🗑️ 移除選取";
                     buttonRemoveFile.Height = 32;
                 }
                 if (buttonMoveUp != null) 
                 {
-                    UiStyle.StyleButtonNeutral(buttonMoveUp);
                     buttonMoveUp.Text = "⬆️";
                     buttonMoveUp.Width = 36;
                     buttonMoveUp.Height = 32;
                 }
                 if (buttonMoveDown != null) 
                 {
-                    UiStyle.StyleButtonNeutral(buttonMoveDown);
                     buttonMoveDown.Text = "⬇️";
                     buttonMoveDown.Width = 36;
                     buttonMoveDown.Height = 32;
                 }
                 if (buttonExecute != null) 
                 {
-                    UiStyle.StyleButtonSuccess(buttonExecute);
                     buttonExecute.Text = "🚀 執行";
                     buttonExecute.Height = 40;
                     buttonExecute.Font = new Font(UiStyle.BaseFont.FontFamily, 10F, FontStyle.Bold);
                 }
                 if (buttonBrowseOutput != null) 
                 {
-                    UiStyle.StyleButtonNeutral(buttonBrowseOutput);
                     buttonBrowseOutput.Text = "📁 選擇路徑";
                     buttonBrowseOutput.Height = 32;
                 }
-                
-                if (labelOutputFolder != null) UiStyle.StyleLabel(labelOutputFolder, subtle: true);
-                if (labelCurrentFile != null) UiStyle.StyleLabel(labelCurrentFile, subtle: true);
             }
             catch { }
         }
@@ -440,50 +432,6 @@ namespace _231211A
             {
                 MessageBox.Show($"載入基準失敗：{ex.Message}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-        }
-
-        private void buttonAddFile_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Excel 檔案 (*.xls;*.xlsx;*.xlsm;*.xlsb)|*.xls;*.xlsx;*.xlsm;*.xlsb";
-            openFileDialog.Multiselect = true;
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                foreach (var file in openFileDialog.FileNames)
-                {
-                    if (!listBoxFiles.Items.Contains(file))
-                        listBoxFiles.Items.Add(file);
-                }
-            }
-        }
-
-        private void buttonRemoveFile_Click(object sender, EventArgs e)
-        {
-            while (listBoxFiles.SelectedItems.Count > 0)
-                listBoxFiles.Items.Remove(listBoxFiles.SelectedItems[0]);
-        }
-
-        private void buttonMoveUp_Click(object sender, EventArgs e)
-        {
-            if (listBoxFiles.SelectedItem == null || listBoxFiles.SelectedIndex <= 0)
-                return;
-            int index = listBoxFiles.SelectedIndex;
-            var item = listBoxFiles.SelectedItem;
-
-            listBoxFiles.Items.RemoveAt(index);
-            listBoxFiles.Items.Insert(index - 1, item);
-            listBoxFiles.SelectedIndex = index - 1;
-        }
-
-        private void buttonMoveDown_Click(object sender, EventArgs e)
-        {
-            if (listBoxFiles.SelectedItem == null || listBoxFiles.SelectedIndex < 0 || listBoxFiles.SelectedIndex >= listBoxFiles.Items.Count - 1)
-                return;
-            int index = listBoxFiles.SelectedIndex;
-            var item = listBoxFiles.SelectedItem;
-            listBoxFiles.Items.RemoveAt(index);
-            listBoxFiles.Items.Insert(index + 1, item);
-            listBoxFiles.SelectedIndex = index + 1;
         }
 
         private void listBoxFiles_DragEnter(object sender, DragEventArgs e)
@@ -633,14 +581,14 @@ namespace _231211A
         {
             inventoryPanel = new Panel
             {
-                Location = new Point(890, 20),  // 從 650 調回 890，恢復原來比例
-                Size = new Size(500, 440),      // 從 820 調回 500，恢復原來寬度
+                Location = new Point(890, 20),
+                Size = new Size(500, 440),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right | AnchorStyles.Bottom,
                 BorderStyle = BorderStyle.None,
                 BackColor = Color.White
             };
             
-            // 為右側面板添加圓角和陰影
+            // Add rounded corners and shadow to the right panel
             inventoryPanel.Paint += (s, e) =>
             {
                 var rect = inventoryPanel.ClientRectangle;
@@ -648,15 +596,12 @@ namespace _231211A
                 using var shadowBrush = new SolidBrush(Color.FromArgb(30, 0, 0, 0));
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 
-                // 陰影
                 using var shadowPath = CreateRoundedRectangle(new Rectangle(rect.X + 2, rect.Y + 2, rect.Width, rect.Height), 16);
                 e.Graphics.FillPath(shadowBrush, shadowPath);
                 
-                // 主背景
                 using var bgBrush = new LinearGradientBrush(rect, Color.White, Color.FromArgb(252, 253, 254), 45f);
                 e.Graphics.FillPath(bgBrush, path);
                 
-                // 邊框
                 using var borderPen = new Pen(Color.FromArgb(226, 232, 240), 1);
                 e.Graphics.DrawPath(borderPen, path);
             };
@@ -677,7 +622,7 @@ namespace _231211A
             {
                 Text = "🔧 主檔案設定",
                 Location = new Point(10, 60),
-                Size = new Size(480, 110),  // 調整到適合的寬度
+                Size = new Size(480, 110),
                 Font = new Font(UiStyle.BaseFont.FontFamily, 10F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(71, 85, 105)
             };
@@ -685,39 +630,39 @@ namespace _231211A
 
             setMainFileButton = new Button
             {
+                Name = "SetMainFile_OK", // For UiStyle
                 Text = "🏢 設定公司庫存",
                 Location = new Point(10, 25),
                 Size = new Size(110, 30)
             };
             setMainFileButton.Click += SetMainFileButton_Click;
             mainFileGroupBox.Controls.Add(setMainFileButton); 
-            UiStyle.StyleButtonPrimary(setMainFileButton);
 
             backupButton = new Button
             {
+                Name = "Backup_OK", // For UiStyle
                 Text = "💾 手動備份",
                 Location = new Point(10, 60),
                 Size = new Size(110, 25)
             };
             backupButton.Click += BackupButton_Click;
             mainFileGroupBox.Controls.Add(backupButton); 
-            UiStyle.StyleButtonSuccess(backupButton);
 
             btnLoadSnapshot = new Button
             {
+                Name = "LoadSnapshot_OK", // For UiStyle
                 Text = "📊 載入基準庫存",
                 Location = new Point(130, 25),
                 Size = new Size(120, 30)
             };
             btnLoadSnapshot.Click += BtnLoadSnapshot_Click;
             mainFileGroupBox.Controls.Add(btnLoadSnapshot); 
-            UiStyle.StyleButtonWarning(btnLoadSnapshot);
 
             mainFileLabel = new Label
             {
                 Text = "尚未設定公司庫存檔",
                 Location = new Point(260, 30),
-                Size = new Size(210, 20),  // 調整寬度
+                Size = new Size(210, 20),
                 Font = new Font(UiStyle.BaseFont.FontFamily, 8.5F),
                 ForeColor = Color.FromArgb(107, 114, 128)
             };
@@ -727,7 +672,7 @@ namespace _231211A
             {
                 Text = "尚未載入基準",
                 Location = new Point(260, 65),
-                Size = new Size(210, 20),  // 調整寬度
+                Size = new Size(210, 20),
                 Font = new Font(UiStyle.BaseFont.FontFamily, 8.5F),
                 ForeColor = Color.FromArgb(107, 114, 128)
             };
@@ -735,13 +680,13 @@ namespace _231211A
 
             previewButton = new Button
             {
+                Name = "Preview", // For UiStyle (default color)
                 Text = "👁️ 預覽庫存",
                 Location = new Point(10, 180),
                 Size = new Size(100, 32)
             };
             previewButton.Click += PreviewButton_Click;
             inventoryPanel.Controls.Add(previewButton); 
-            UiStyle.StyleButtonNeutral(previewButton);
 
             var searchLabel = new Label
             {
@@ -762,7 +707,6 @@ namespace _231211A
             };
             searchBox.TextChanged += SearchBox_TextChanged;
             inventoryPanel.Controls.Add(searchBox); 
-            UiStyle.StyleTextBox(searchBox);
 
             filterComboBox = new ComboBox
             {
@@ -774,12 +718,11 @@ namespace _231211A
             filterComboBox.SelectedIndex = 0;
             filterComboBox.SelectedIndexChanged += FilterComboBox_SelectedIndexChanged;
             inventoryPanel.Controls.Add(filterComboBox); 
-            UiStyle.StyleComboBox(filterComboBox);
 
             inventoryGridView = new DataGridView
             {
                 Location = new Point(10, 220),
-                Size = new Size(480, 170),  // 調整寬度配合面板
+                Size = new Size(480, 170),
                 AllowUserToAddRows = false,
                 ReadOnly = true,
                 MultiSelect = false,
@@ -790,17 +733,16 @@ namespace _231211A
                 CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal
             };
             inventoryPanel.Controls.Add(inventoryGridView); 
-            UiStyle.StyleDataGridView(inventoryGridView);
 
             exportButton = new Button
             {
+                Name = "Export", // For UiStyle
                 Text = "📋 匯出庫存報表",
                 Location = new Point(10, 400),
                 Size = new Size(120, 32)
             };
             exportButton.Click += ExportButton_Click;
             inventoryPanel.Controls.Add(exportButton); 
-            UiStyle.StyleButtonDanger(exportButton);
 
             summaryLabel = new Label
             {
@@ -814,45 +756,56 @@ namespace _231211A
 
             btnExportRequirement = new Button
             {
+                Name = "ExportRequirement", // For UiStyle
                 Text = "🛒 匯出缺料清單",
-                Location = new Point(350, 400),  // 調整位置
+                Location = new Point(350, 400),
                 Size = new Size(120, 32)
             };
             btnExportRequirement.Click += BtnExportRequirement_Click;
             inventoryPanel.Controls.Add(btnExportRequirement); 
-            UiStyle.StyleButtonDanger(btnExportRequirement);
 
-            this.Width = 1420;  // 恢復原來的總寬度
+            this.Width = 1420;
+        }
+
+        private void SetMainFileButton_Click(object sender, EventArgs e)
+        {
+            using (var ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Excel 檔案|*.xls;*.xlsx;*.xlsm;*.xlsb";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    mainFilePath = ofd.FileName;
+                    SaveMainFileConfig();
+                    UpdateMainFileLabel();
+                    SetSnapshotFromMainFile(); // 自動將新設定的檔案作為基準
+                }
+            }
         }
 
         /// <summary>
-        /// 設定公司庫存檔（僅供預覽）
+        /// 更新庫存統計
         /// </summary>
-        private void SetMainFileButton_Click(object? sender, EventArgs e)
+        private void UpdateInventorySummary(DataTable dt)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Excel 檔案 (*.xls;*.xlsx;*.xlsm;*.xlsb)|*.xls;*.xlsx;*.xlsm;*.xlsb";
-            openFileDialog.Title = "選擇公司庫存檔（預覽用/基準）";
+            int totalItems = dt.DefaultView.Count;
+            int lowStock = 0, zeroStock = 0, negativeStock = 0;
 
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            foreach (DataRowView rowView in dt.DefaultView)
             {
-                mainFilePath = openFileDialog.FileName;
-                SaveMainFileConfig();
-                UpdateMainFileLabel();
-
-                try
+                var row = rowView.Row;
+                if (row.ItemArray.Length > 0)
                 {
-                    InventoryBaselineManager.LoadSnapshot(mainFilePath);
-                    var name = Path.GetFileName(mainFilePath);
-                    lblSnapshotInfo.Text = $"基準: {InventoryBaselineManager.SnapshotTime:MM-dd HH:mm} {name}";
-                    lblSnapshotInfo.ForeColor = Color.FromArgb(40, 167, 69);
-                    MessageBox.Show("公司庫存檔設定成功，並已作為缺料判斷基準！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"載入基準失敗：{ex.Message}", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    var lastValue = row.ItemArray[row.ItemArray.Length - 1];
+                    if (double.TryParse(lastValue?.ToString(), out double stock))
+                    {
+                        if (stock < 0) negativeStock++;
+                        else if (stock == 0) zeroStock++;
+                        else if (stock < 10) lowStock++;
+                    }
                 }
             }
+
+            summaryLabel.Text = $"📊 縂計：{totalItems} | 🔻 低庫存：{lowStock} | 🔴 零庫存：{zeroStock} | ⚠️ 負庫存：{negativeStock}";
         }
 
         /// <summary>
@@ -1191,32 +1144,6 @@ namespace _231211A
         }
 
         /// <summary>
-        /// 更新庫存統計
-        /// </summary>
-        private void UpdateInventorySummary(DataTable dt)
-        {
-            int totalItems = dt.DefaultView.Count;
-            int lowStock = 0, zeroStock = 0, negativeStock = 0;
-
-            foreach (DataRowView rowView in dt.DefaultView)
-            {
-                var row = rowView.Row;
-                if (row.ItemArray.Length > 0)
-                {
-                    var lastValue = row.ItemArray[row.ItemArray.Length - 1];
-                    if (double.TryParse(lastValue?.ToString(), out double stock))
-                    {
-                        if (stock < 0) negativeStock++;
-                        else if (stock == 0) zeroStock++;
-                        else if (stock < 10) lowStock++;
-                    }
-                }
-            }
-
-            summaryLabel.Text = $"📊 縂計：{totalItems} | 🔻 低庫存：{lowStock} | 🔴 零庫存：{zeroStock} | ⚠️ 負庫存：{negativeStock}";
-        }
-
-        /// <summary>
         /// 匯出庫存報表
         /// </summary>
         private void ExportButton_Click(object? sender, EventArgs e)
@@ -1314,31 +1241,6 @@ namespace _231211A
                 if (progressBar1.Maximum > 0)
                     progressBar1.Value = progressBar1.Maximum;
             }
-        }
-
-        private string GetTodayFolderPath()
-        {
-            return @"\\St-nas\個人資料夾\Andy\excel\" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm");
-        }
-
-        private string GetLatestOutputFolder()
-        {
-            try
-            {
-                string baseFolder = @"\\St-nas\個人資料夾\Andy\excel\";
-                if (Directory.Exists(baseFolder))
-                {
-                    var todayFolders = Directory.GetDirectories(baseFolder)
-                        .Where(d => Path.GetFileName(d).StartsWith(DateTime.Now.ToString("yyyy-MM-dd")))
-                        .OrderByDescending(d => d)
-                        .ToArray();
-
-                    if (todayFolders.Length > 0)
-                        return todayFolders[0];
-                }
-                return string.Empty;
-            }
-            catch { return string.Empty; }
         }
 
         private void BtnLoadSnapshot_Click(object? sender, EventArgs e)
@@ -1460,5 +1362,69 @@ namespace _231211A
             }
         }
         #endregion
+
+        private void buttonAddFile_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                using var ofd = new OpenFileDialog
+                {
+                    Title = "選擇要加入的 Excel 檔案",
+                    Filter = "Excel 檔案|*.xls;*.xlsx;*.xlsm;*.xlsb",
+                    Multiselect = true
+                };
+                if (ofd.ShowDialog() != DialogResult.OK) return;
+                foreach (var f in ofd.FileNames)
+                {
+                    if (!listBoxFiles.Items.Contains(f))
+                        listBoxFiles.Items.Add(f);
+                }
+            }
+            catch (Exception ex)
+            { MessageBox.Show($"加入檔案失敗: {ex.Message}"); }
+        }
+
+        private void buttonRemoveFile_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (listBoxFiles.SelectedItems.Count == 0) return;
+                var toRemove = new List<object>();
+                foreach (var item in listBoxFiles.SelectedItems) toRemove.Add(item);
+                foreach (var item in toRemove) listBoxFiles.Items.Remove(item);
+            }
+            catch (Exception ex)
+            { MessageBox.Show($"移除失敗: {ex.Message}"); }
+        }
+
+        private void buttonMoveUp_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (listBoxFiles.SelectedIndex <= 0) return;
+                int idx = listBoxFiles.SelectedIndex;
+                var item = listBoxFiles.Items[idx];
+                listBoxFiles.Items.RemoveAt(idx);
+                listBoxFiles.Items.Insert(idx - 1, item);
+                listBoxFiles.SelectedIndex = idx - 1;
+            }
+            catch (Exception ex)
+            { MessageBox.Show($"上移失敗: {ex.Message}"); }
+        }
+
+        private void buttonMoveDown_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                int idx = listBoxFiles.SelectedIndex;
+                if (idx < 0 || idx >= listBoxFiles.Items.Count - 1) return;
+                var item = listBoxFiles.Items[idx];
+                listBoxFiles.Items.RemoveAt(idx);
+                listBoxFiles.Items.Insert(idx + 1, item);
+                listBoxFiles.SelectedIndex = idx + 1;
+            }
+            catch (Exception ex)
+            { MessageBox.Show($"下移失敗: {ex.Message}"); }
+        }
     }
 }

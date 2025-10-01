@@ -26,6 +26,7 @@ namespace _231211A
             public string Part = string.Empty;
             public string Desc = string.Empty;
             public int Qty;
+            public Color? FillColor; // 新增：記錄儲存格顏色
         }
         private static readonly List<(string FileName, List<SummaryDetail> Details)> _summaryData = new();
 
@@ -311,7 +312,7 @@ namespace _231211A
                 object hv = wsSource.Cells[i, 8].Value; // H
                 if (hv == null) continue;
                 string hs = hv.ToString()?.Trim() ?? string.Empty;
-                if (hs == "-" || hs == "---" || hs == "0") continue;
+                if (hs == "-" || hs == "---" || hs == "0") continue; // 移除 "缺" 過濾，缺料也要輸出
                 if (double.TryParse(hs, out double hd) && Math.Abs(hd) < double.Epsilon) continue;
 
                 // Unmerge C:D if merged
@@ -325,21 +326,73 @@ namespace _231211A
                 string part = wsSource.Cells[i, 3].Value?.ToString() ?? string.Empty; // C
                 string desc = wsSource.Cells[i, 4].Value?.ToString() ?? string.Empty; // D
                 int qty = 0;
+                Color? fillColor = null;
+                int? oleColor = null; // 統一保存 OLE 色碼（含條件式格式）
+                
                 try
                 {
-                    object qtyObj = wsSource.Cells[i, 8].Value; // H
-                    if (qtyObj != null && double.TryParse(qtyObj.ToString(), out double qd)) qty = (int)Math.Round(qd, MidpointRounding.AwayFromZero);
+                    Excel.Range qtyCell = wsSource.Cells[i, 8]; // H
+                    object qtyObj = qtyCell.Value;
+                    if (qtyObj != null && double.TryParse(qtyObj.ToString(), out double qd)) 
+                        qty = (int)Math.Round(qd, MidpointRounding.AwayFromZero);
+
+                    // 先嘗試一般填色
+                    try
+                    {
+                        var interior = qtyCell.Interior;
+                        bool hasPattern = interior.Pattern != Excel.XlPattern.xlPatternNone;
+                        int rawColor = 0;
+                        try { rawColor = Convert.ToInt32(interior.Color); } catch { }
+                        // -4142 (xlColorIndexNone) / 16777215 (純白 default) 可能表示未特別設定，改用條件式顯示色
+                        if (hasPattern && rawColor != 0 && rawColor != -4142)
+                        {
+                            oleColor = rawColor;
+                        }
+                    }
+                    catch { }
+
+                    // 若尚未取得，嘗試條件式格式顯示色
+                    if (oleColor == null)
+                    {
+                        try
+                        {
+                            int dispColor = Convert.ToInt32(qtyCell.DisplayFormat.Interior.Color);
+                            // 有些情況會拿到 0 或 -4142，需過濾
+                            if (dispColor != 0 && dispColor != -4142)
+                                oleColor = dispColor;
+                        }
+                        catch { }
+                    }
+
+                    if (oleColor != null)
+                    {
+                        try { fillColor = ColorTranslator.FromOle(oleColor.Value); } catch { fillColor = null; }
+                    }
                 }
                 catch { }
 
+                // 寫入資料到新工作表
                 wsTarget.Cells[outRow, 1].Value = part;
                 wsTarget.Cells[outRow, 2].Value = desc;
                 wsTarget.Cells[outRow, 3].Value = qty;
+
+                // 顏色應用：若取得 OLE 色碼則直接套用，確保 Pattern=Solid (僅 C 欄)
+                if (oleColor != null)
+                {
+                    try
+                    {
+                        var cellApply = wsTarget.Cells[outRow, 3];
+                        cellApply.Interior.Pattern = Excel.XlPattern.xlPatternSolid;
+                        cellApply.Interior.Color = oleColor.Value;
+                    }
+                    catch { }
+                }
+
                 outRow++;
 
                 if (collect != null)
                 {
-                    collect.Add(new SummaryDetail { Part = part, Desc = desc, Qty = qty });
+                    collect.Add(new SummaryDetail { Part = part, Desc = desc, Qty = qty, FillColor = fillColor });
                 }
             }
 
@@ -360,13 +413,23 @@ namespace _231211A
             Excel.Worksheet ws = summaryWb.Worksheets[1];
             int row = 1;
 
+            // 設定標題
+            ws.Cells[row, 1].Value = "排序";
+            ws.Cells[row, 2].Value = "料號";
+            ws.Cells[row, 3].Value = "描述";
+            ws.Cells[row, 4].Value = "數量";
+            var headerRange = ws.Range[ws.Cells[row, 1], ws.Cells[row, 4]];
+            headerRange.Font.Bold = true;
+            headerRange.Interior.Color = ColorTranslator.ToOle(Color.FromArgb(220, 220, 220));
+            row++;
+
             foreach (var group in _summaryData)
             {
-                // 檔名列 (合併 A:C)
+                // 檔名列 (合併 A:D)
                 ws.Cells[row, 1].Value = group.FileName;
                 try
                 {
-                    Excel.Range fr = ws.Range[ws.Cells[row, 1], ws.Cells[row, 3]];
+                    Excel.Range fr = ws.Range[ws.Cells[row, 1], ws.Cells[row, 4]];
                     fr.Merge();
                     fr.Font.Bold = true;
                     fr.Interior.Color = ColorTranslator.ToOle(Color.FromArgb(233, 236, 239));
@@ -374,21 +437,43 @@ namespace _231211A
                 catch { }
                 row++;
 
-                // 料號 A-Z 排序（不分大小寫）。假設不會有重複料號。
+                // 料號 A-Z 排序
                 var ordered = group.Details
                     .OrderBy(d => d.Part ?? string.Empty, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
+                int sortIndex = 1;
                 foreach (var d in ordered)
                 {
-                    ws.Cells[row, 1].Value = d.Part;
-                    ws.Cells[row, 2].Value = d.Desc;
-                    ws.Cells[row, 3].Value = d.Qty;
+                    ws.Cells[row, 1].Value = sortIndex++;
+                    ws.Cells[row, 2].Value = d.Part;
+                    ws.Cells[row, 3].Value = d.Desc;
+                    ws.Cells[row, 4].Value = d.Qty;
+
+                    // 僅對數量欄 (D) 上色
+                    if (d.FillColor.HasValue)
+                    {
+                        try
+                        {
+                            var qtyCell = ws.Cells[row, 4];
+                            qtyCell.Interior.Pattern = Excel.XlPattern.xlPatternSolid;
+                            qtyCell.Interior.Color = ColorTranslator.ToOle(d.FillColor.Value);
+                        }
+                        catch { }
+                    }
                     row++;
                 }
             }
-            try { ws.Columns.AutoFit(); } catch { }
-            string summaryName = $"dispatch_summary_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            try 
+            {
+                // 設定欄寬
+                ws.Columns[1].ColumnWidth = 3;
+                ws.Columns[2].ColumnWidth = 17.5;
+                ws.Columns[3].ColumnWidth = 68.25;
+                ws.Columns[4].ColumnWidth = 8;
+            } 
+            catch { }
+            string summaryName = $"dispatch_summary_{DateTime.Now:yyyyMMdd_HHmms}.xlsx";
             string savePath = Path.Combine(folderPath, summaryName);
             summaryWb.SaveAs(savePath);
             summaryWb.Close();

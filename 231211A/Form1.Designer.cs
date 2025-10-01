@@ -63,7 +63,6 @@
             buttonAddFile.Text = "➕ 新增檔案";
             toolTip1.SetToolTip(buttonAddFile, "點擊以選擇檔案加入清單");
             buttonAddFile.UseVisualStyleBackColor = true;
-            buttonAddFile.Click += buttonAddFile_Click;
             // 
             // buttonRemoveFile
             // 
@@ -74,7 +73,6 @@
             buttonRemoveFile.Text = "🗑️ 移除選取";
             toolTip1.SetToolTip(buttonRemoveFile, "移除清單中選取的檔案");
             buttonRemoveFile.UseVisualStyleBackColor = true;
-            buttonRemoveFile.Click += buttonRemoveFile_Click;
             // 
             // buttonExecute
             // 
@@ -96,7 +94,6 @@
             buttonMoveUp.Text = "⬆️";
             toolTip1.SetToolTip(buttonMoveUp, "將選取的檔案向上移動");
             buttonMoveUp.UseVisualStyleBackColor = true;
-            buttonMoveUp.Click += buttonMoveUp_Click;
             // 
             // buttonMoveDown
             // 
@@ -107,7 +104,6 @@
             buttonMoveDown.Text = "⬇️";
             toolTip1.SetToolTip(buttonMoveDown, "將選取的檔案向下移動");
             buttonMoveDown.UseVisualStyleBackColor = true;
-            buttonMoveDown.Click += buttonMoveDown_Click;
             // 
             // labelOutputFolder
             // 

@@ -1,251 +1,136 @@
 using System;
 using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
 using System.Drawing.Drawing2D;
+using System.Windows.Forms;
 
 namespace _231211A
 {
-    internal static class UiStyle
+    public static class UiStyle
     {
-        public static bool DarkMode { get; private set; } = false;
+        // Apple-style Color Palette
+        public static readonly Color WindowBackground = Color.FromArgb(242, 242, 247); // Light Gray
+        public static readonly Color ControlBackground = Color.White;
+        public static readonly Color TextColor = Color.FromArgb(28, 28, 30); // Near Black
+        public static readonly Color SecondaryTextColor = Color.FromArgb(142, 142, 147); // Gray
+        public static readonly Color AccentColor = Color.FromArgb(0, 122, 255); // Blue
+        public static readonly Color DestructiveColor = Color.FromArgb(255, 59, 48); // Red
+        public static readonly Color SeparatorColor = Color.FromArgb(229, 229, 234);
 
-        public static readonly Color Primary = Color.FromArgb(0, 123, 255);
-        public static readonly Color PrimaryHover = Color.FromArgb(0, 105, 217);
-        public static readonly Color Success = Color.FromArgb(40, 167, 69);
-        public static readonly Color Warning = Color.FromArgb(255, 193, 7);
-        public static readonly Color Danger = Color.FromArgb(220, 53, 69);
-        public static readonly Color Accent = Color.FromArgb(23, 162, 184);
-        public static readonly Color Neutral = Color.FromArgb(108, 117, 125);
-        public static readonly Color PanelBg = Color.FromArgb(248, 249, 250);
-        public static readonly Color Border = Color.FromArgb(222, 226, 230);
-
-        private static readonly Color DarkBack = Color.FromArgb(32, 34, 37);
-        private static readonly Color DarkPanel = Color.FromArgb(44, 47, 51);
-        private static readonly Color DarkBorder = Color.FromArgb(64, 68, 75);
-        private static readonly Color DarkText = Color.FromArgb(236, 239, 244);
-        private static readonly Color DarkSubtle = Color.FromArgb(153, 159, 170);
-
-        private static Font? _baseFont;
-        public static Font BaseFont => _baseFont ??= BuildBaseFont();
-
-        private static Font BuildBaseFont()
-        {
-            string[] preferred = { "Segoe UI", "Microsoft JhengHei UI", "Microsoft JhengHei", "·L³n¥¿¶ÂÅé", "Arial" };
-            foreach (var name in preferred)
-            {
-                try
-                {
-                    using var f = new Font(name, 9F, FontStyle.Regular, GraphicsUnit.Point);
-                    if (string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase))
-                        return new Font(f, FontStyle.Regular);
-                }
-                catch { }
-            }
-            return new Font(SystemFonts.DefaultFont.FontFamily, 9F, FontStyle.Regular);
-        }
+        // Fonts
+        public static readonly Font BaseFont = new Font("Segoe UI", 9F, FontStyle.Regular);
+        public static readonly Font BoldFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+        public static readonly Font TitleFont = new Font("Segoe UI", 14F, FontStyle.Bold);
 
         public static void ApplyTheme(Form form)
         {
+            form.BackColor = WindowBackground;
             form.Font = BaseFont;
-            form.BackColor = DarkMode ? DarkBack : Color.White;
-            form.DoubleBuffered(true);
-            ApplyRecursive(form.Controls);
+            form.ForeColor = TextColor;
+
+            ApplyThemeToControls(form.Controls);
         }
 
-        private static void ApplyRecursive(Control.ControlCollection controls)
+        private static void ApplyThemeToControls(Control.ControlCollection controls)
         {
-            foreach (Control c in controls)
+            foreach (Control control in controls)
             {
-                switch (c)
+                if (control is Button button)
                 {
-                    case Button b:
-                        if (b.BackColor.A == 0 || b.BackColor == SystemColors.Control)
-                            StyleButtonNeutral(b);
-                        b.ForeColor = DarkMode ? DarkText : Color.White;
-                        break;
-                    case Panel p:
-                        p.BackColor = DarkMode ? DarkPanel : PanelBg;
-                        ApplyRounded(p, 10);
-                        break;
-                    case GroupBox g:
-                        g.ForeColor = DarkMode ? DarkText : Color.Black;
-                        g.Font = BaseFont;
-                        break;
-                    case Label l:
-                        if (l.ForeColor == SystemColors.ControlText || l.ForeColor == Color.Black)
-                            l.ForeColor = DarkMode ? DarkText : Color.FromArgb(33, 37, 41);
-                        break;
-                    case TextBox tb:
-                        StyleTextBox(tb);
-                        break;
-                    case ComboBox cb:
-                        StyleComboBox(cb);
-                        break;
-                    case DataGridView dgv:
-                        StyleDataGridView(dgv);
-                        break;
-                    case ListBox lb:
-                        StyleListBox(lb);
-                        break;
+                    button.FlatStyle = FlatStyle.Flat;
+                    button.FlatAppearance.BorderSize = 0;
+                    button.Font = BoldFont;
+                    button.ForeColor = Color.White;
+                    button.Padding = new Padding(5);
+                    button.MinimumSize = new Size(0, 30);
+
+                    // Differentiate by name or tag for specific styling
+                    if (button.Name.Contains("Export") || button.Name.Contains("OK") || button.Name.Contains("Execute"))
+                    {
+                        button.BackColor = AccentColor; // Primary action
+                    }
+                    else if (button.Name.Contains("Remove") || button.Name.Contains("Cancel"))
+                    {
+                        button.BackColor = DestructiveColor; // Destructive action
+                    }
+                    else
+                    {
+                        button.BackColor = SecondaryTextColor; // Secondary action
+                        button.ForeColor = TextColor;
+                    }
+                    ApplyRoundedCorners(button, 8);
                 }
-                if (c.HasChildren) ApplyRecursive(c.Controls);
+                else if (control is Label label)
+                {
+                    label.BackColor = Color.Transparent;
+                    label.Font = BaseFont;
+                    label.ForeColor = TextColor;
+                }
+                else if (control is TextBox textBox)
+                {
+                    textBox.BackColor = ControlBackground;
+                    textBox.ForeColor = TextColor;
+                    textBox.Font = BaseFont;
+                    textBox.BorderStyle = BorderStyle.FixedSingle;
+                }
+                else if (control is ListBox listBox)
+                {
+                    listBox.BackColor = ControlBackground;
+                    listBox.ForeColor = TextColor;
+                    listBox.Font = BaseFont;
+                    listBox.BorderStyle = BorderStyle.None;
+                }
+                else if (control is DataGridView dgv)
+                {
+                    dgv.BackgroundColor = ControlBackground;
+                    dgv.BorderStyle = BorderStyle.None;
+                    dgv.GridColor = SeparatorColor;
+                    dgv.ColumnHeadersDefaultCellStyle.BackColor = WindowBackground;
+                    dgv.ColumnHeadersDefaultCellStyle.ForeColor = TextColor;
+                    dgv.ColumnHeadersDefaultCellStyle.Font = BoldFont;
+                    dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+                    dgv.EnableHeadersVisualStyles = false;
+                    dgv.DefaultCellStyle.BackColor = ControlBackground;
+                    dgv.DefaultCellStyle.ForeColor = TextColor;
+                    dgv.DefaultCellStyle.Font = BaseFont;
+                    dgv.AlternatingRowsDefaultCellStyle.BackColor = WindowBackground;
+                }
+                else if (control is Panel panel)
+                {
+                    panel.BackColor = Color.Transparent;
+                }
+                else if (control is ComboBox comboBox)
+                {
+                    comboBox.BackColor = ControlBackground;
+                    comboBox.ForeColor = TextColor;
+                    comboBox.Font = BaseFont;
+                    comboBox.FlatStyle = FlatStyle.Flat;
+                }
+
+                if (control.HasChildren)
+                {
+                    ApplyThemeToControls(control.Controls);
+                }
             }
         }
 
-        public static void ToggleDarkMode(Form? form = null)
+        private static void ApplyRoundedCorners(Control control, int radius)
         {
-            DarkMode = !DarkMode;
-            if (form != null) ApplyTheme(form);
-        }
-
-        public static void StylePanel(Panel panel)
-        {
-            panel.BackColor = DarkMode ? DarkPanel : PanelBg;
-            panel.BorderStyle = BorderStyle.FixedSingle;
-            ApplyRounded(panel, 10);
-        }
-
-        public static void StyleDataGridView(DataGridView dgv)
-        {
-            dgv.EnableHeadersVisualStyles = false;
-            dgv.BackgroundColor = DarkMode ? DarkPanel : Color.White;
-            dgv.BorderStyle = BorderStyle.FixedSingle;
-            dgv.GridColor = DarkMode ? DarkBorder : Border;
-            dgv.ColumnHeadersDefaultCellStyle.BackColor = DarkMode ? DarkBorder : Color.FromArgb(233, 236, 239);
-            dgv.ColumnHeadersDefaultCellStyle.ForeColor = DarkMode ? DarkText : Color.FromArgb(33, 37, 41);
-            dgv.ColumnHeadersDefaultCellStyle.Font = new Font(BaseFont, FontStyle.Bold);
-            dgv.DefaultCellStyle.Font = BaseFont;
-            dgv.DefaultCellStyle.BackColor = DarkMode ? DarkPanel : Color.White;
-            dgv.DefaultCellStyle.ForeColor = DarkMode ? DarkText : Color.Black;
-            dgv.DefaultCellStyle.SelectionBackColor = Primary;
-            dgv.DefaultCellStyle.SelectionForeColor = Color.White;
-            dgv.AlternatingRowsDefaultCellStyle.BackColor = DarkMode ? Color.FromArgb(52, 55, 59) : Color.FromArgb(245, 247, 250);
-            dgv.AlternatingRowsDefaultCellStyle.ForeColor = DarkMode ? DarkText : Color.Black;
-            dgv.RowHeadersVisible = false;
-            dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-        }
-
-        public static void StyleListBox(ListBox list)
-        {
-            list.Font = BaseFont;
-            list.BorderStyle = BorderStyle.FixedSingle;
-            list.BackColor = DarkMode ? DarkPanel : Color.White;
-            list.ForeColor = DarkMode ? DarkText : Color.Black;
-            list.IntegralHeight = false;
-        }
-
-        public static void StyleComboBox(ComboBox cb)
-        {
-            cb.Font = BaseFont;
-            cb.BackColor = DarkMode ? DarkPanel : Color.White;
-            cb.ForeColor = DarkMode ? DarkText : Color.Black;
-            cb.FlatStyle = FlatStyle.Standard;
-            ApplyRounded(cb, 6);
-        }
-
-        public static void StyleTextBox(TextBox tb)
-        {
-            tb.Font = BaseFont;
-            tb.BorderStyle = BorderStyle.FixedSingle;
-            tb.BackColor = DarkMode ? DarkPanel : Color.White;
-            tb.ForeColor = DarkMode ? DarkText : Color.Black;
-            ApplyRounded(tb, 6);
-        }
-
-        public static void StyleLabel(Label lbl, bool title = false, bool subtle = false)
-        {
-            if (title)
+            // Use a GraphicsPath to create a rounded rectangle region for the control
+            control.Paint += (sender, e) =>
             {
-                lbl.Font = new Font(BaseFont.FontFamily, 12F, FontStyle.Bold);
-                lbl.ForeColor = DarkMode ? DarkText : Color.FromArgb(33, 37, 41);
-            }
-            else if (subtle)
-            {
-                lbl.ForeColor = DarkMode ? DarkSubtle : Neutral;
-            }
-            else
-            {
-                lbl.ForeColor = DarkMode ? DarkText : Color.FromArgb(33, 37, 41);
-            }
-        }
-
-        public static void StyleProgressBar(ProgressBar pb)
-        {
-            pb.ForeColor = Primary;
-        }
-
-        public static void StyleButtonPrimary(Button b) => StyleButtonBase(b, Primary);
-        public static void StyleButtonSuccess(Button b) => StyleButtonBase(b, Success);
-        public static void StyleButtonDanger(Button b) => StyleButtonBase(b, Danger);
-        public static void StyleButtonWarning(Button b)
-        {
-            StyleButtonBase(b, Warning);
-            b.ForeColor = Color.Black;
-        }
-        public static void StyleButtonNeutral(Button b) => StyleButtonBase(b, Neutral);
-
-        private static void StyleButtonBase(Button b, Color baseColor)
-        {
-            b.FlatStyle = FlatStyle.Flat;
-            b.FlatAppearance.BorderSize = 0;
-            b.BackColor = baseColor;
-            b.ForeColor = Color.White;
-            b.Font = BaseFont;
-            b.Height = Math.Max(30, b.Height);
-            b.Padding = new Padding(8, 4, 8, 4);
-            ApplyRounded(b, 8);
-            var original = baseColor;
-            b.MouseEnter += (_, _) => b.BackColor = Darken(original, 0.08f);
-            b.MouseLeave += (_, _) => b.BackColor = original;
-            b.MouseDown += (_, _) => b.BackColor = Darken(original, 0.15f);
-            b.MouseUp += (_, _) => b.BackColor = Darken(original, 0.08f);
-        }
-
-        private static void ApplyRounded(Control c, int radius)
-        {
-            if (radius <= 0) return;
-            c.Region = null;
-            c.HandleCreated += (_, _) => SetRoundRegion(c, radius);
-            c.SizeChanged += (_, _) => SetRoundRegion(c, radius);
-            if (c.IsHandleCreated) SetRoundRegion(c, radius);
-        }
-
-        private static void SetRoundRegion(Control c, int radius)
-        {
-            try
-            {
-                var rect = c.ClientRectangle;
-                if (rect.Width <= 0 || rect.Height <= 0) return;
-                using GraphicsPath path = new GraphicsPath();
-                int d = radius * 2;
-                path.StartFigure();
-                path.AddArc(rect.X, rect.Y, d, d, 180, 90);
-                path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
-                path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
-                path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
-                path.CloseFigure();
-                c.Region = new Region(path);
-            }
-            catch { }
-        }
-
-        private static Color Darken(Color c, float ratio)
-        {
-            int r = (int)(c.R * (1 - ratio));
-            int g = (int)(c.G * (1 - ratio));
-            int b = (int)(c.B * (1 - ratio));
-            return Color.FromArgb(r, g, b);
-        }
-
-        public static void DoubleBuffered(this Control control, bool enable)
-        {
-            try
-            {
-                var prop = control.GetType().GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                prop?.SetValue(control, enable, null);
-            }
-            catch { }
+                if (sender is Control c)
+                {
+                    using (var path = new GraphicsPath())
+                    {
+                        path.AddArc(0, 0, radius, radius, 180, 90);
+                        path.AddArc(c.Width - radius, 0, radius, radius, 270, 90);
+                        path.AddArc(c.Width - radius, c.Height - radius, radius, radius, 0, 90);
+                        path.AddArc(0, c.Height - radius, radius, radius, 90, 90);
+                        path.CloseFigure();
+                        c.Region = new Region(path);
+                    }
+                }
+            };
         }
     }
 }

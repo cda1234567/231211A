@@ -21,7 +21,7 @@ namespace _231211A
         private Label lblMOQ = null!;
         private TextBox txtDispatchAmount = null!;
         private Button btnOK = null!;
-        private Button btnSkip = null!;
+        private Button btnIgnore = null!;
         private Button btnCancel = null!;
 
         private readonly ReplenishmentItem _item;
@@ -54,31 +54,33 @@ namespace _231211A
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = Color.FromArgb(248, 249, 250);
+            
+            // Apply Apple-style theme
+            UiStyle.ApplyTheme(this);
 
-            lblTitle = new Label { Text = "需要發料項目", Location = new Point(20, 15), Size = new Size(460, 28), Font = new Font("Microsoft YaHei", 14, FontStyle.Bold), ForeColor = Color.FromArgb(220, 53, 69) };
+            lblTitle = new Label { Text = "需要發料項目", Location = new Point(20, 15), Size = new Size(460, 28), Font = UiStyle.TitleFont, ForeColor = UiStyle.DestructiveColor };
             this.Controls.Add(lblTitle);
 
-            lblFileIndex = new Label { Text = $"目前處理：第 {_fileIndex} 個負庫存項目", Location = new Point(20, 48), Size = new Size(460, 18), Font = new Font("Microsoft YaHei", 9, FontStyle.Bold), ForeColor = Color.FromArgb(0, 123, 255) };
+            lblFileIndex = new Label { Text = $"目前處理：第 {_fileIndex} 個負庫存項目", Location = new Point(20, 48), Size = new Size(460, 18), Font = UiStyle.BoldFont, ForeColor = UiStyle.AccentColor };
             this.Controls.Add(lblFileIndex);
 
             lblPartNumber = new Label { Text = $"料號：{_item.PartNumber}", Location = new Point(20, 75), Size = new Size(460, 22) };
             this.Controls.Add(lblPartNumber);
             lblDescription = new Label { Text = $"說明：{_item.Description}", Location = new Point(20, 100), Size = new Size(460, 22) };
             this.Controls.Add(lblDescription);
-            lblCurrentStock = new Label { Text = $"目前庫存：{_item.CurrentStock:F2}", Location = new Point(20, 125), Size = new Size(460, 22), ForeColor = Color.FromArgb(220, 53, 69) };
+            lblCurrentStock = new Label { Text = $"目前庫存：{_item.CurrentStock:F2}", Location = new Point(20, 125), Size = new Size(460, 22), ForeColor = UiStyle.DestructiveColor };
             this.Controls.Add(lblCurrentStock);
-            lblRequiredAmount = new Label { Text = $"缺口(建議補)數量：{_item.ShortageAmount:F2}", Location = new Point(20, 150), Size = new Size(460, 22), Font = new Font("Microsoft YaHei", 10, FontStyle.Bold), ForeColor = Color.FromArgb(220, 53, 69) };
+            lblRequiredAmount = new Label { Text = $"缺口(建議補)數量：{_item.ShortageAmount:F2}", Location = new Point(20, 150), Size = new Size(460, 22), Font = UiStyle.BoldFont, ForeColor = UiStyle.DestructiveColor };
             this.Controls.Add(lblRequiredAmount);
 
             // 基準庫存顯示
-            lblSnapshot = new Label { Text = "基準庫存(快照)：—", Location = new Point(20, 175), Size = new Size(460, 20), ForeColor = Color.FromArgb(33, 37, 41) };
+            lblSnapshot = new Label { Text = "基準庫存(快照)：—", Location = new Point(20, 175), Size = new Size(460, 20), ForeColor = UiStyle.TextColor };
             this.Controls.Add(lblSnapshot);
-            lblSnapshotInfo = new Label { Text = "基準來源/時間：—", Location = new Point(20, 195), Size = new Size(460, 18), ForeColor = Color.FromArgb(108, 117, 125) };
+            lblSnapshotInfo = new Label { Text = "基準來源/時間：—", Location = new Point(20, 195), Size = new Size(460, 18), ForeColor = UiStyle.SecondaryTextColor };
             this.Controls.Add(lblSnapshotInfo);
 
             // MOQ 顯示
-            lblMOQ = new Label { Text = "MOQ：—", Location = new Point(20, 215), Size = new Size(460, 20), ForeColor = Color.FromArgb(33, 37, 41) };
+            lblMOQ = new Label { Text = "MOQ：—", Location = new Point(20, 215), Size = new Size(460, 20), ForeColor = UiStyle.TextColor };
             this.Controls.Add(lblMOQ);
 
             lblDispatchAmount = new Label { Text = "本次補(發)料數量：", Location = new Point(20, 245), Size = new Size(150, 24) };
@@ -88,13 +90,15 @@ namespace _231211A
             txtDispatchAmount.KeyPress += TxtDispatchAmount_KeyPress;
             this.Controls.Add(txtDispatchAmount);
 
-            btnOK = new Button { Text = "確認", Location = new Point(70, 310), Size = new Size(90, 35), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnOK = new Button { Name = "OK", Text = "確認", Location = new Point(70, 310), Size = new Size(90, 35) };
             btnOK.Click += BtnOK_Click;
             this.Controls.Add(btnOK);
-            btnSkip = new Button { Text = "跳過", Location = new Point(180, 310), Size = new Size(90, 35), BackColor = Color.FromArgb(108, 117, 125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnSkip.Click += BtnSkip_Click;
-            this.Controls.Add(btnSkip);
-            btnCancel = new Button { Text = "取消全部", Location = new Point(290, 310), Size = new Size(90, 35), BackColor = Color.FromArgb(73, 80, 87), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            
+            btnIgnore = new Button { Name = "Ignore", Text = "缺料", Location = new Point(180, 310), Size = new Size(90, 35), DialogResult = DialogResult.Ignore };
+            btnIgnore.Click += BtnSkip_Click;
+            this.Controls.Add(btnIgnore);
+
+            btnCancel = new Button { Name = "Cancel", Text = "取消全部", Location = new Point(290, 310), Size = new Size(90, 35) };
             btnCancel.Click += BtnCancel_Click;
             this.Controls.Add(btnCancel);
 

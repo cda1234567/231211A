@@ -15,12 +15,15 @@ namespace _231211A
         private readonly double _request;
         private readonly double _shortage;
 
-        private RadioButton rbHasPO = null!;
-        private RadioButton rbCreateReq = null!;
-        private RadioButton rbReInput = null!;
-        private RadioButton rbIgnore = null!;
-        private Button btnOk = null!;
-        private Button btnCancel = null!;
+        private Label lblTitle = null!;
+        private Label lblPartNumber = null!;
+        private Label lblDescription = null!;
+        private Label lblStockInfo = null!;
+        private Label lblShortage = null!;
+        private Button btnMarkPO = null!;
+        private Button btnCreateReq = null!;
+        private Button btnReInput = null!;
+        private Button btnIgnoreOnce = null!;
 
         public ShortageDecision Decision { get; private set; } = ShortageDecision.None;
 
@@ -33,51 +36,41 @@ namespace _231211A
         private void Build()
         {
             Text = "缺料確認";
-            Size = new Size(430, 340);
+            Size = new Size(500, 300);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false; MinimizeBox = false;
 
-            var lbl = new Label
-            {
-                Text = $"料號: {_part}\n描述: {_desc}\n基準庫存: {_snapshot}\n本次輸入: {_request}\n判定缺料數量: {_shortage}",
-                Location = new Point(15, 10),
-                Size = new Size(380, 90)
-            };
-            Controls.Add(lbl);
+            // Apply Apple-style theme
+            UiStyle.ApplyTheme(this);
 
-            rbHasPO = new RadioButton { Text = "已有採購未到 (標記，不列入缺料)", Location = new Point(20, 110), Size = new Size(360, 22) };
-            rbCreateReq = new RadioButton { Text = "沒有採購 → 建立缺料需求", Location = new Point(20, 135), Size = new Size(360, 22) };
-            rbReInput = new RadioButton { Text = "我輸入錯了 → 返回重輸", Location = new Point(20, 160), Size = new Size(360, 22) };
-            rbIgnore = new RadioButton { Text = "忽略一次 (紀錄但不建立需求)", Location = new Point(20, 185), Size = new Size(360, 22) };
+            lblTitle = new Label { Text = "庫存不足", Location = new Point(20, 20), Size = new Size(460, 28), Font = UiStyle.TitleFont, ForeColor = UiStyle.DestructiveColor };
+            this.Controls.Add(lblTitle);
 
-            rbCreateReq.Checked = true;
+            lblPartNumber = new Label { Text = $"料號：{_part}", Location = new Point(20, 60), Size = new Size(460, 22) };
+            this.Controls.Add(lblPartNumber);
+            lblDescription = new Label { Text = $"說明：{_desc}", Location = new Point(20, 85), Size = new Size(460, 22) };
+            this.Controls.Add(lblDescription);
+            lblStockInfo = new Label { Text = $"基準庫存: {_snapshot:F0} / 需求: {_request:F0}", Location = new Point(20, 110), Size = new Size(460, 22) };
+            this.Controls.Add(lblStockInfo);
+            lblShortage = new Label { Text = $"缺料數量：{_shortage:F0}", Location = new Point(20, 135), Size = new Size(460, 22), Font = UiStyle.BoldFont, ForeColor = UiStyle.DestructiveColor };
+            this.Controls.Add(lblShortage);
 
-            Controls.Add(rbHasPO);
-            Controls.Add(rbCreateReq);
-            Controls.Add(rbReInput);
-            Controls.Add(rbIgnore);
+            btnMarkPO = new Button { Name = "MarkPO", Text = "標記已有PO", Location = new Point(20, 180), Size = new Size(120, 35) };
+            btnMarkPO.Click += (s, e) => { Decision = ShortageDecision.MarkHasPO; this.DialogResult = DialogResult.OK; this.Close(); };
+            this.Controls.Add(btnMarkPO);
 
-            btnOk = new Button { Text = "確定", Location = new Point(90, 240), Size = new Size(100, 30), BackColor = Color.FromArgb(40,167,69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, DialogResult = DialogResult.OK };
-            btnCancel = new Button { Text = "取消", Location = new Point(210, 240), Size = new Size(100, 30), BackColor = Color.FromArgb(108,117,125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, DialogResult = DialogResult.Cancel };
+            btnCreateReq = new Button { Name = "CreateReq", Text = "產生需求", Location = new Point(150, 180), Size = new Size(120, 35) };
+            btnCreateReq.Click += (s, e) => { Decision = ShortageDecision.CreateRequirement; this.DialogResult = DialogResult.OK; this.Close(); };
+            this.Controls.Add(btnCreateReq);
 
-            btnOk.Click += (_, __) =>
-            {
-                if (rbHasPO.Checked) Decision = ShortageDecision.MarkHasPO;
-                else if (rbCreateReq.Checked) Decision = ShortageDecision.CreateRequirement;
-                else if (rbReInput.Checked) Decision = ShortageDecision.ReInput;
-                else if (rbIgnore.Checked) Decision = ShortageDecision.IgnoreOnce;
-                // DialogResult 已預設為 OK
-                Close();
-            };
-            btnCancel.Click += (_, __) => { /* DialogResult 已預設為 Cancel */ Close(); };
+            btnReInput = new Button { Name = "ReInput", Text = "重新輸入", Location = new Point(280, 180), Size = new Size(90, 35) };
+            btnReInput.Click += (s, e) => { Decision = ShortageDecision.ReInput; this.DialogResult = DialogResult.OK; this.Close(); };
+            this.Controls.Add(btnReInput);
 
-            Controls.Add(btnOk);
-            Controls.Add(btnCancel);
-
-            // 讓 Enter = 確定、Esc = 取消
-            this.AcceptButton = btnOk;
-            this.CancelButton = btnCancel;
+            btnIgnoreOnce = new Button { Name = "IgnoreOnce", Text = "忽略本次", Location = new Point(380, 180), Size = new Size(90, 35) };
+            btnIgnoreOnce.Click += (s, e) => { Decision = ShortageDecision.IgnoreOnce; this.DialogResult = DialogResult.OK; this.Close(); };
+            this.Controls.Add(btnIgnoreOnce);
         }
     }
 }
