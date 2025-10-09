@@ -145,16 +145,7 @@ namespace _231211A
 
                     for (int j = 2; j <= lastRowSec; j++)
                     {
-                        bool skipRow = false;
-                        if (dataArray.GetLength(1) >= 7 && dataArray[j, 7] != null && IsDashLike(dataArray[j, 7].ToString())) skipRow = true;
-                        if (dataArray.GetLength(1) >= 8 && dataArray[j, 8] != null && IsDashLike(dataArray[j, 8].ToString())) skipRow = true;
-                        if (skipRow)
-                        {
-                            progressValue++;
-                            UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
-                            continue;
-                        }
-
+                        // 先取得料號，確保可寫派工數
                         string secPart = dataArray[j, 3]?.ToString()?.Trim() ?? string.Empty; // C column part number
                         if (string.IsNullOrEmpty(secPart))
                         {
@@ -163,6 +154,7 @@ namespace _231211A
                             continue;
                         }
 
+                        // 對應主檔列
                         int mainRowIndex = -1;
                         for (int k = 2; k <= lastRowMain; k++)
                         {
@@ -176,6 +168,60 @@ namespace _231211A
                             continue;
                         }
 
+                        // 先寫派工數（若有），即使後面判定為 skip 也一樣寫
+                        double dispatchQtyPreset = GetDispatchQuantity("main", secPart);
+                        if (dispatchQtyPreset > 0 && !dispatchedOnce.Contains(secPart))
+                        {
+                            var dispatchCellEarly = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 1];
+                            dispatchCellEarly.Value = (int)Math.Round(dispatchQtyPreset, MidpointRounding.AwayFromZero);
+                            ClearCellFill(dispatchCellEarly);
+                            dispatchedOnce.Add(secPart);
+                        }
+
+                        // 檢查是否跳過後續處理
+                        bool skipRow = false;
+                        if (dataArray.GetLength(1) >= 7 && dataArray[j, 7] != null && IsDashLike(dataArray[j, 7].ToString())) skipRow = true;
+                        if (dataArray.GetLength(1) >= 8 && dataArray[j, 8] != null && IsDashLike(dataArray[j, 8].ToString())) skipRow = true;
+                        if (skipRow)
+                        {
+                            progressValue++;
+                            UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
+                            continue;
+                        }
+
+                        // H 欄補料值寫入主檔 baseCol + 1 (只有在沒有派工數且補料值大於0時才寫入)
+                        if (dispatchQtyPreset <= 0 || dispatchedOnce.Contains(secPart))
+                        {
+                            double hValue = 0;
+                            try
+                            {
+                                object hRawValue = worksheet.Cells[j, 8].Value; // H 欄補料
+                                if (hRawValue != null && double.TryParse(hRawValue.ToString(), out hValue))
+                                {
+                                    Debug.WriteLine($"讀取到 H 欄補料值: {hValue}, 料號: {secPart}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine($"讀取 H 欄補料時發生錯誤: {ex.Message}, 料號: {secPart}");
+                            }
+
+                            // 只有補料值大於 0 才寫入主檔
+                            if (hValue > 0)
+                            {
+                                int hRounded = (int)Math.Round(hValue, MidpointRounding.AwayFromZero);
+                                var hCell = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 1]; // 補料欄
+                                hCell.Value = hRounded;
+                                ClearCellFill(hCell);
+                                Debug.WriteLine($"H 欄補料值寫入主檔: 列 {mainRowIndex}, 欄 {baseCol + 1}, 值: {hRounded}, 料號: {secPart}");
+                            }
+                            else
+                            {
+                                Debug.WriteLine($"H 欄補料值為 0，跳過寫入: 料號 {secPart}");
+                            }
+                        }
+
+                        // F 欄生產用量寫入主檔 baseCol + 2
                         double f2 = 0;
                         if (dataArray.GetLength(1) >= 6 && dataArray[j, 6] != null && double.TryParse(dataArray[j, 6].ToString(), out double tmpF2))
                             f2 = Math.Round(tmpF2, MidpointRounding.AwayFromZero);
@@ -183,6 +229,7 @@ namespace _231211A
                         midCell.Value = f2;
                         ClearCellFill(midCell);
 
+                        // G 回填前次最終
                         int prevFinal = FindLastNonEmptyColumnValueInRow(mainDataArray, mainRowIndex);
                         var gCell = (Excel.Range)worksheet.Cells[j, 7];
                         if (prevFinal != 0)
@@ -201,23 +248,27 @@ namespace _231211A
                         }
                         ClearCellFill(gCell);
 
-                        double dispatchQtyPreset = GetDispatchQuantity("main", secPart);
-                        if (dispatchQtyPreset > 0 && !dispatchedOnce.Contains(secPart))
+                        // J 欄結存料數寫入主檔 baseCol + 3
+                        double jValue = 0;
+                        try
                         {
-                            var dispatchCell = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 1];
-                            dispatchCell.Value = dispatchQtyPreset.ToString("F0");
-                            ClearCellFill(dispatchCell);
-                            dispatchedOnce.Add(secPart);
+                            object jRawValue = worksheet.Cells[j, 10].Value; // J 欄結存料數
+                            if (jRawValue != null && double.TryParse(jRawValue.ToString(), out jValue))
+                            {
+                                Debug.WriteLine($"讀取到 J 欄結存料數: {jValue}, 料號: {secPart}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"讀取 J 欄結存料數時發生錯誤: {ex.Message}, 料號: {secPart}");
                         }
 
-                        double jValue = 0;
-                        if (worksheet.Cells[j, 10].Value != null)
-                            double.TryParse(worksheet.Cells[j, 10].Value.ToString(), out jValue);
                         int finalRounded = (int)Math.Round(jValue, MidpointRounding.AwayFromZero);
                         var outCell = (Excel.Range)mainWorksheet.Cells[mainRowIndex, baseCol + 3];
                         outCell.Value = finalRounded;
                         ClearCellFill(outCell);
                         if (finalRounded < 0) ApplyNegativeFill(outCell);
+                        Debug.WriteLine($"J 欄結存料數寫入主檔: 列 {mainRowIndex}, 欄 {baseCol + 3}, 值: {finalRounded}, 料號: {secPart}");
 
                         progressValue++;
                         UpdateProgressBar(progressBar1, labelCurrentFile, Path.GetFileName(secondaryFileName), j, lastRowSec, progressValue);
@@ -312,8 +363,10 @@ namespace _231211A
                 object hv = wsSource.Cells[i, 8].Value; // H
                 if (hv == null) continue;
                 string hs = hv.ToString()?.Trim() ?? string.Empty;
-                if (hs == "-" || hs == "---" || hs == "0") continue; // 移除 "缺" 過濾，缺料也要輸出
-                if (double.TryParse(hs, out double hd) && Math.Abs(hd) < double.Epsilon) continue;
+                
+                // 跳過破折號，但不跳過"缺"和數字0
+                if (hs == "-" || hs == "---") continue;
+                if (double.TryParse(hs, out double hd) && Math.Abs(hd) < double.Epsilon && hs != "缺") continue;
 
                 // Unmerge C:D if merged
                 try
@@ -326,6 +379,7 @@ namespace _231211A
                 string part = wsSource.Cells[i, 3].Value?.ToString() ?? string.Empty; // C
                 string desc = wsSource.Cells[i, 4].Value?.ToString() ?? string.Empty; // D
                 int qty = 0;
+                string displayValue = string.Empty;
                 Color? fillColor = null;
                 int? oleColor = null; // 統一保存 OLE 色碼（含條件式格式）
                 
@@ -333,8 +387,22 @@ namespace _231211A
                 {
                     Excel.Range qtyCell = wsSource.Cells[i, 8]; // H
                     object qtyObj = qtyCell.Value;
-                    if (qtyObj != null && double.TryParse(qtyObj.ToString(), out double qd)) 
+                    
+                    // 檢查是否為"缺"
+                    if (qtyObj != null && qtyObj.ToString().Trim() == "缺")
+                    {
+                        displayValue = "缺";
+                        qty = 0; // 統計用，但顯示為"缺"
+                    }
+                    else if (qtyObj != null && double.TryParse(qtyObj.ToString(), out double qd))
+                    {
                         qty = (int)Math.Round(qd, MidpointRounding.AwayFromZero);
+                        displayValue = qty.ToString();
+                    }
+                    else
+                    {
+                        displayValue = qtyObj?.ToString() ?? string.Empty;
+                    }
 
                     // 先嘗試一般填色
                     try
@@ -374,7 +442,7 @@ namespace _231211A
                 // 寫入資料到新工作表
                 wsTarget.Cells[outRow, 1].Value = part;
                 wsTarget.Cells[outRow, 2].Value = desc;
-                wsTarget.Cells[outRow, 3].Value = qty;
+                wsTarget.Cells[outRow, 3].Value = displayValue; // 使用displayValue保持"缺"字顯示
 
                 // 顏色應用：若取得 OLE 色碼則直接套用，確保 Pattern=Solid (僅 C 欄)
                 if (oleColor != null)

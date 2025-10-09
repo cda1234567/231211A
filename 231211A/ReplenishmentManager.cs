@@ -346,8 +346,7 @@ namespace _231211A
                     // 寫回 H（補料量）；J = 原 J + 補料（不做任何底色或粗體/格式變更）
                     double adjusted = j + qty;
 
-                    ws.Cells[r, 8].Value = qty;                        // H
-                    ws.Cells[r, 10].Value = (int)Math.Round(adjusted); // J
+                    ws.Cells[r, 8].Value = qty; // H
 
                     // 若此筆為「需要採購」決策，將 H 欄塗淡橘色
                     if (result.Decision == ShortageDecision.CreateRequirement)
@@ -355,7 +354,8 @@ namespace _231211A
                         try
                         {
                             var hCell = (Excel.Range)ws.Cells[r, 8];
-                            hCell.Interior.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(255, 248, 225));
+                            // 加深已存在的 H 格欄位顏色
+                            hCell.Interior.Color = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(255, 192, 0));
                         }
                         catch { }
                     }

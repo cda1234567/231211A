@@ -156,7 +156,7 @@
             label1.Name = "label1";
             label1.Size = new Size(74, 15);
             label1.TabIndex = 8;
-            label1.Text = "Rev2025.9.15";
+            label1.Text = "Rev2025.10.9";
             // 
             // Form1
             // 
